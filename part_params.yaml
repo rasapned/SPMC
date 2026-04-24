@@ -57,7 +57,9 @@ collisions:
     shape: 0           # no. of rotational DoF -1 (0: monatomic (1 rotational DoF))
     T_a: 0.0           # Activation temperature (K)
     Hr: 120000.0       # Enthalpy change (J/mol) 
-    type: stick        # collision type: stick (molecule always adheres to the particle) 
+    energy_mode: surf_partner   # surf_partner: different energy value if gas molec. hits oxygen at the surface
+    Hr_surplus: 289000.0        # Additional energy if oxygen hit at the surface  
+    collision_type: stick        # collision type: stick (molecule always adheres to the particle) 
     star: n            # collision type symbol (n: nucleation (heterogenous))
     addO: 0            # collision outcome: no. of oxygen atoms added to the particle
     addFE: 1           # collision outcome: no. of Fe atoms added to the particle
@@ -68,7 +70,9 @@ collisions:
     shape: 1           # no. of rotational DoF -1 (1: linear (2 rotational DoF))
     T_a: 1000.0        # Activation temperature (K)
     Hr: 160000.0       # Enthalpy change (J/mol) 
-    type: oxi          # collision type: oxi (reacts with available Fe at the part. surface)
+    energy_mode: pST_lin_interp # different energy value depending on the particle stoichiometry, linearly int. between 0-1 oxidation level
+    Hr_surplus: 289000.0        # Additional energy at maximum oxidation level 
+    collision_type: oxi          # collision type: oxi (reacts with available Fe at the part. surface)
     star: o            # collision type symbol (o: oxidation)
     addO: 1            # collision outcome: no. of oxygen atoms added to the particle 
     addFE: 0           # collision outcome: no. of Fe atoms added to the particle
@@ -79,7 +83,9 @@ collisions:
     shape: 0           # no. of rotational DoF -1 (0: monatomic (1 rotational DoF))
     T_a: 0.0           # Activation temperature (K)
     Hr: 658000.0       # Enthalpy change (J/mol) 
-    type: oxi          # collision type: oxi (reacts with available Fe at the part. surface)
+    energy_mode: pST_lin_interp # different energy value depending on the particle stoichiometry, linearly int. between 0-1 oxidation level
+    Hr_surplus: 289000.0        # Additional energy at maximum oxidation level 
+    collision_type: oxi          # collision type: oxi (reacts with available Fe at the part. surface)
     star: o            # collision type symbol (o: oxidation)
     addO: 1            # collision outcome: no. of oxygen atoms added to the particle 
     addFE: 0           # collision outcome: no. of Fe atoms added to the particle
@@ -90,7 +96,7 @@ collisions:
     shape: 2           # no. of rotational DoF -1 (2: triatomic bent (3 rotational DoF))
     T_a: 1300.0        # Activation temperature (K)
     Hr: 87000.0        # Enthalpy change (J/mol) 
-    type: oxi          # reaction type: oxi (reacts with available Fe at the part. surface) 
+    collision_type: oxi          # reaction type: oxi (reacts with available Fe at the part. surface) 
     star: o            # reaction type symbol (o: oxidation)
     addO: 1            # reac. outcome: no. of oxygen atoms added to the particle
     addFE: 0           # reac. outcome: no. of Fe atoms added to the particle
@@ -101,8 +107,8 @@ collisions:
     shape: 1           # no. of rotational DoF -1 (1: linear (2 rotational DoF))
     T_a: 2000.0        # Activation temperature (K)
     Hr: 52000.0        # Enthalpy change (J/mol) 
-    type: red          # collision type: red (reacts with available O at the part. surface)
-    start: r           # collision type symbol (r: reduction)
+    collision_type: red          # collision type: red (reacts with available O at the part. surface)
+    star: r           # collision type symbol (r: reduction)
     addO: -1           # collision outcome: no. of oxygen atoms added to the particle 
     addFE: 0           # collision outcome: no. of Fe atoms added to the particle
 
@@ -112,7 +118,7 @@ collisions:
     shape: 0           # no. of rotational DoF -1 (0: monatomic (1 rotational DoF))
     T_a: 500.0         # Activation temperature (K)
     Hr: 53000.0        # Enthalpy change (J/mol) 
-    type: red          # collision type: red (reacts with available O at the part. surface)
+    collision_type: red          # collision type: red (reacts with available O at the part. surface)
     star: r            # collision type symbol (r: oxidation)
     addO: -1           # collision outcome: no. of oxygen atoms added to the particle 
     addFE: 0           # collision outcome: no. of Fe atoms added to the particle
@@ -123,7 +129,7 @@ collisions:
     shape: 1           # no. of rotational DoF -1 (1: linear (2 rotational DoF))
     T_a: 2200.0        # Activation temperature (K)
     Hr: 157000.0       # Enthalpy change (J/mol) 
-    type: etch         # collision type: etch (reacts with Fe at the part. surface)
+    collision_type: etch         # collision type: etch (reacts with Fe at the part. surface)
     star: et           # collision type symbol (et: etching)
     addO: 0            # collision outcome: no. of oxygen atoms added to the particle 
     addFE: -1          # collision outcome: no. of Fe atoms added to the particle
@@ -134,14 +140,14 @@ collisions:
     shape: 0           # no. of rotational DoF -1 (0: monatomic (1 rotational DoF))
     T_a: 1e30          # Activation temperature (K)
     Hr: 0.0            # Enthalpy change (J/mol) 
-    type: elastic      # reaction type: elastic (no adhesion to the particle) 
+    collision_type: elastic      # reaction type: elastic (no adhesion to the particle) 
     star: el           # reaction type symbol (el: elastic)
     addO: 0            # reac. outcome: no. of oxygen atoms added to the particle
     addFE: 0           # reac. outcome: no. of Fe atoms added to the particle
+    accommod: 1.0       # accommodation coefficient for elastic collision only (0-1, 1: full energy accommodation, 0: no energy accommodation)  
 
 MC_params:
   z_max: auto           # maximum DFB
   MBD_points: 2000      # Maxwell-Boltzmann distribution resolution
   MBD_width: 4.0        # MB distribution width (multiples of mean molecule velocity)
   MBD_deltaT: 5.0       # max. temperature deviation from new MBD calculation
-  elastic_accommodation: 1.0

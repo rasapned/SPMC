@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # Run the main code on X number of cores
-ITERATIONS=2
+ITERATIONS=1
 
 # Path to the main file
 PYTHON_SCRIPT="SRC/SPMC-0D-main-200326.py"
@@ -54,16 +54,30 @@ echo "Using existing results directory: $results_dir"
 ########################################
 # Step 6: Run iterations in parallel
 ########################################
+pids=()
 for ((i=1; i<=ITERATIONS; i++))
 do
     taskset -c "$i" python "$PYTHON_SCRIPT" "$case_file" "$i" &
+    pids+=($!)
 done
 
-wait
+# Wait for all processes and check exit codes
+all_success=true
+for pid in "${pids[@]}"; do
+    if ! wait "$pid"; then
+        echo "Error: Process $pid failed" >&2
+        all_success=false
+    fi
+done
 
-echo "All runs completed successfully."
+if $all_success; then
+    echo "All runs completed successfully."
+else
+    echo "Some runs failed. Check output above." >&2
+    exit 1
+fi
 
 ########################################
 # Step 7: Averaging the results and statistics
 ########################################
-python SRC/runningAverage.py $case_file $ITERATIONS
+#python SRC/runningAverage.py $case_file $ITERATIONS

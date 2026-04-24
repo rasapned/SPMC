@@ -92,24 +92,39 @@ A_evap     = float(conf['evaporation']['A_evap'])              # Arrhenius fit p
 T_Aevap    = float(conf['evaporation']['T_Aevap'])             # Arrhenius fit activation temperature
 Evap_relax = float(conf['evaporation']['relax'])               # evaporation relaxation factor
 
-# Collision/Material parameters
-elast_accomodation = float(conf['collision']['elastic_accommodation'])
-
 # Collision parameters and definitions
 class proto_SOI:        # Define the collision/reaction class
-    def __init__(self, name, shape, T_a, Hr, type, star, addO, addFE, sc1, sc2):
+    def __init__(self, name, shape, T_a, Hr, collision_type, star, addO, addFE, sc1, sc2, energy_mode="standard", Hr_surplus=0.0, accommod=1.0):
         self.name = name
         self.shape = shape
         self.T_a = T_a
         self.Hr = Hr / N_A
-        self.type = type
+        self.collision_type = collision_type
         self.star = star
         self.addO = addO
         self.addFE = addFE
         self.sc1 = sc1
         self.sc2 = sc2
+        self.energy_mode = energy_mode
+        self.accommod = accommod
+        self.Hr_surplus = Hr_surplus / N_A
         self.coll_count = 0
         self.coll_comp = 0.0
+    
+    # Method to compute the energy change of the particle upon collision, depending on the selected mode
+    def get_energy(self, pST_rat, pST_max):
+        if self.energy_mode == "surf_partner":
+            if random() < pST_rat:
+                return self.Hr_surplus
+            return self.Hr
+
+        elif self.energy_mode == "pST_lin_interp":
+            factor = pST_rat * pST_max / (1.0 + pST_rat * pST_max)
+            return self.Hr - factor * self.Hr_surplus
+
+        else:
+            return self.Hr
+        
 SOI = []
 
 for c in conf['collisions']:        # Read collision/reaction types
@@ -119,29 +134,47 @@ for c in conf['collisions']:        # Read collision/reaction types
     #                 sc1= 0, sc2=+1 : interaction with surface-O  --> reduction
     #                 sc1=+1, sc2=+1 : stick always
     #                 sc1= 0, sc2= 0 : stick never
-   if c["type"] == "stick":
+    if c["collision_type"] == "stick":
         sc1, sc2 = 1, 1
-    elif c["type"] == "oxi":
+    elif c["collision_type"] == "oxi":
         sc1, sc2 = 1, -1
-    elif c["type"] == "red":
+    elif c["collision_type"] == "red":
         sc1, sc2 = 0, 1
-    elif c["type"] == "etch":
+    elif c["collision_type"] == "etch":
         sc1, sc2 = 1, -1
-    elif c["type"] == "elastic":
+    elif c["collision_type"] == "elastic":
         sc1, sc2 = 0, 0
     else:
-        raise ValueError(f"Unknown collision type: {c['type']}")
-    
-    SOI.append(proto_SOI(
-        c['name'], c['shape'], c['T_a'], c['Hr'], c['type'], c['star']
-        c['addO'], c['addFE'], sc1, sc2
-    ))
+        raise ValueError(f"Unknown collision type: {c['collision_type']}")
+
+    try:
+        SOI.append(proto_SOI(
+            c['name'],
+            c['shape'],
+            c['T_a'],
+            c['Hr'],
+            c['collision_type'],
+            c['star'],
+            c['addO'],
+            c['addFE'],
+            sc1,
+            sc2,
+            energy_mode=c.get('energy_mode', 'standard'),
+            Hr_surplus=c.get('Hr_surplus', 0.0),
+            accommod=c.get('accommod', 1.0)
+        ))
+        print(f"Loaded collision: {c['name']} ({c['collision_type']})")
+    except KeyError as e:
+        raise KeyError(f"Missing collision field {e.args[0]} for reaction {c.get('name', '<unknown>')}") from e
+    except Exception as e:
+        raise RuntimeError(f"Failed to load collision {c.get('name', '<unknown>')}: {e}") from e
 
 # Read MC parameters
 if conf['MC_params']['z_max'] == 'auto':                    # MC sim. until z_max
     z_max    = f_z[-1]                                          # Same as last Cantera flame point
+    t_max    = f_time[-1]                                       # Same as last Cantera flame point
 else:
-    T_pMC   = float(conf['particle']['initial']['T_p'])         # or read the value from input file
+    z_max    = float(conf['MC_params']['z_max'])                 # Read the value    
 MBD_points  = int(conf['MC_params']['MBD_points'])      # Maxwell-Boltzmann func. distribution resolution
 MBD_width   = float(conf['MC_params']['MBD_width'])     # Distribution width (multiple of mean molecule speed)
 MBD_deltaT  = float(conf['MC_params']['MBD_deltaT'])    # max. temp. deviation from current before recalculating Maxwell-Botzmann
@@ -228,7 +261,7 @@ elif nucl_mode == 'add':
 
         f_X_metal += data[col_name] * fac
 
-    f_X[metal_idx] = f_XFE
+    f_X[metal_idx] = f_X_metal
 
 # Initialise vectors for thermo species data (taken usually from Cantera)
 W_g     = np.zeros(n_species)       # molar weight
@@ -314,7 +347,7 @@ while (z<z_max):
     gas.TP = T_g, P_g
     
     # Update gas metal concentration (Fe depletion/coupling)
-    Fe_depl = n_FE_seeds * MC_ni_FE
+    Fe_depl = n_FE_seeds * ni_FE_pMC
     
     for s in range(len(SOI)):
         s_SOI    = gas.species_index(SOI[s].name)               # species name
@@ -335,7 +368,7 @@ while (z<z_max):
             for j in range(1, len(MBD_v[s])):           # Build the distribution x axis for each MBD point
                 MBD_v[s][j] = MBD_v[s][j-1] + v_inc
             # Build the probability axis (y-axis)
-            MBD_cdf[s] = CMBD(vs_g[s], M_g[s], T_g) 
+            MBD_cdf[s] = CMBD(MBD_v[s], M_g[s], T_g) 
         
         # Update the temperature for which the CMBD was calculated
         MBD_T = T_g                                     
@@ -344,8 +377,8 @@ while (z<z_max):
     # kMC algorithm: collision frequencies and timestepping
     #''''''''''''''''''''''''''''''''''''
     for s in range(len(SOI)):
-        M_red[s] = (MC_M * M_g[s]) / (MC_M + M_g[s])    # Particle-gas molec. reduced mass
-        f_pg[s]   = n_g[s] * PI * (MC_R + s_g[s])**2 * (8.0*k_B*T_g/PI/M_red[s])**0.5   # species collision frequency
+        M_red[s] = (M_pMC * M_g[s]) / (M_pMC + M_g[s])    # Particle-gas molec. reduced mass
+        f_pg[s]   = n_g[s] * PI * (R_pMC + s_g[s])**2 * (8.0*k_B*T_g/PI/M_red[s])**0.5   # species collision frequency
     f_cum = sum(f_pg)                                   # Cumulative collision frequency (of any species molecule)        
     dt_av = 1.0/f_cum                                   # Collision characteristic time (average)
     dt = -np.log(max(random(), 1.0e-7)) * dt_av         # MC time step (derived from Poisson distribution)
@@ -370,7 +403,7 @@ while (z<z_max):
     #''''''''''''''''''''''''''''''''''''
     # Compute the kinetic energy of incident gas molecule sampled from Maxwell-Boltzmann distribution (random process)
     #''''''''''''''''''''''''''''''''''''
-    v_gm = interp(cdf[s], vs_g[s])(random())            # gas molecule velocity sampled from MBD
+    v_gm = interp(MBD_cdf[s], MBD_v[s])(random())            # gas molecule velocity sampled from MBD
     E_gm = 0.5 * M_g[s] * v_gm**2                       # gas molecule kinetic energy
     T_gm = M_g[s] * v_gm**2 / 3.0 / k_B                 # convert to gas molecule temperature
     
@@ -386,7 +419,7 @@ while (z<z_max):
     #''''''''''''''''''''''''''''''''''''
     # Single particle - gas molecule collision
     #''''''''''''''''''''''''''''''''''''
-    E_pMC += -(4+SOI[s].shape)*0.5*k_B*(T_pMC - T_gm) * elast_accomodation  # Particle energy change (equilibration with gas molecule)
+    E_pMC += -(4+SOI[s].shape)*0.5*k_B*(T_pMC - T_gm) * SOI[s].accommod  # Particle energy change (equilibration with gas molecule)
     T_pMC = E_pMC / M_pMC / C_pMC                                           # Updated particle temperature
  
     #''''''''''''''''''''''''''''''''''''
@@ -414,27 +447,24 @@ while (z<z_max):
             print(f'Molec. temp: {T_cur:6.1f}')
             ni_FE_pMC += SOI[s].addFE               # add metal atoms
             ni_O_pMC  += SOI[s].addO                # add oxygen atoms
-            star = SOI[s].star
+            star = SOI[s].star                      # collision type for output    
             n_ine += 1                              # inelastic coll. increase
-            count_ell = 0
+            count_ell = 0   
             n_coll = n_ine+n_ell
-            M_pMC  = ni_FE_pMC * M_g[metal_idx] + ni_O_pMC * M_g[oxi_idx]
-            pST_pMC = ni_O_pMC/ni_FE_pMC
-            rho_pMC = rho_p_fe - (rho_p_fe - rho_p_fe2o3)*pST_pMC/pST_max
-            R_pMC = (3.0*(M_pMC/rho_pMC)/4.0/PI)**(1.0/3.0)
-            if s==0 and random() < pST_rat:
-                E_pMC += 289.0 * 1e3 / N_A
-            if (s==1 or s==2):
-                E_pMC += SOI[s].Hr - (pST_rat * pST_max / (1 + pST_rat*pST_max) * 127.42 * 1e3 / N_A)
-            else:
-                E_pMC += SOI[s].Hr
-            T_pMC = E_pMC / M_pMC / C_pMC
-            #
+            M_pMC  = ni_FE_pMC * M_g[metal_idx] + ni_O_pMC * M_g[oxi_idx]   # compute new mass of particle
+            pST_pMC = ni_O_pMC/ni_FE_pMC                                    # compute new particle stoichiometry    
+            rho_pMC = rho_p_fe - (rho_p_fe - rho_p_fe2o3)*pST_pMC/pST_max   # compute new particle density
+            R_pMC = (3.0*(M_pMC/rho_pMC)/4.0/PI)**(1.0/3.0)                 # compute new particle radius
+            E_pMC += SOI[s].get_energy(pST_rat, pST_max)                    # compute new particle energy (depending on the selected mode)
+            T_pMC = E_pMC / M_pMC / C_pMC                                   # compute new particle temperature
+            # output
             outstr = f"{t:1.8e}, {z:1.8e}, {T_g:6.1f}, {T_pMC:6.1f}, {R_pMC*2:1.5e}, {M_pMC:1.5e}, {pST_pMC:4.3f}, {n_ine:6d}, {n_ell:6d}, {n_coll:6d}, {ni_FE_pMC:5d}, {ni_O_pMC:5d}, {SOI[s].name:3s}, {star:3s}, {Tbefore_pMC:6.1f}"
             print(outstr)
             MC_file.write(outstr+'\n')
         
-        # elastic
+        #''''''''''''''''''''''''''''''''''''
+        # Else, elastic collision (activation energy not met)
+        #''''''''''''''''''''''''''''''''''''
         else:
             n_ell += 1
             n_coll = n_ine+n_ell
@@ -446,8 +476,10 @@ while (z<z_max):
                 count_ell = 0
                 print(outstr)
                 MC_file.write(outstr+'\n')
-
-    # same, elastic
+    
+    #''''''''''''''''''''''''''''''''''''
+    # Else, elastic collision (collision partner not matching reaction criteria)
+    #''''''''''''''''''''''''''''''''''''
     else:
         n_ell += 1
         n_coll = n_ine+n_ell
@@ -455,15 +487,17 @@ while (z<z_max):
         star = 'el'
         # this part is actually not needed anymore, as after the second MDB roll we have plenty of reactive reactions at all stages
         if count_ell == 200:
-            outstr = f"{t:1.8e}, {z:1.8e}, {T_g:6.1f}, {MC_Tp:6.1f}, {MC_R*2:1.5e}, {MC_M:1.5e}, {MC_ST:4.3f}, {n_ine:6d}, {n_ell:6d}, {n_coll:6d}, {MC_ni_FE:5d}, {MC_ni_O:5d}, {SOI[s].name:3s}, {star:3s}, {MC_Tp_before:6.1f}"
+            outstr = f"{t:1.8e}, {z:1.8e}, {T_g:6.1f}, {T_pMC:6.1f}, {R_pMC*2:1.5e}, {M_pMC:1.5e}, {pST_pMC:4.3f}, {n_ine:6d}, {n_ell:6d}, {n_coll:6d}, {ni_FE_pMC:5d}, {ni_O_pMC:5d}, {SOI[s].name:3s}, {star:3s}, {Tbefore_pMC:6.1f}"
             count_ell = 0
             print(outstr)
             MC_file.write(outstr+'\n')
-
-    # Evaporation losses
+    
+    #''''''''''''''''''''''''''''''''''''
+    # Evaporation process (if particle is hot enough and has enough material to evaporate)
+    #''''''''''''''''''''''''''''''''''''
     if (ni_O_pMC > 5 and ni_FE_pMC > 5):
         T_pMC = E_pMC / M_pMC / C_pMC
-        ndot_FEO = A_evap * mt.exp(-T_Aevap/MC_Tp) * N_A * 4.0*PI*R_pMC**2.0 * Evap_relax
+        ndot_FEO = A_evap * mt.exp(-T_Aevap/T_pMC) * N_A * 4.0*PI*R_pMC**2.0 * Evap_relax
         n_FEO = mt.trunc(ndot_FEO * dt)
         # loosing Fe and O one by one until particle is too cold
         while (n_FEO>0 and ni_O_pMC > 8 and ni_FE_pMC > 8):
@@ -477,7 +511,7 @@ while (z<z_max):
             R_pMC = (3.0*(M_pMC/rho_pMC)/4.0/PI)**(1.0/3.0)
             E_pMC += H_evap        # loosing a lot of heat
             T_pMC = max(T_g, E_pMC/M_pMC/C_pMC)
-            outstr = f"{t:1.8e}, {z:1.8e}, {T_g:6.1f}, {MC_Tp:6.1f}, {MC_R*2:1.5e}, {MC_M:1.5e}, {MC_ST:4.3f}, {n_ine:6d}, {n_ell:6d}, {n_coll:6d}, {MC_ni_FE:5d}, {MC_ni_O:5d}, {SOI[s].name:3s}, {star:3s}, {MC_Tp_before:6.1f}"
+            outstr = f"{t:1.8e}, {z:1.8e}, {T_g:6.1f}, {T_pMC:6.1f}, {R_pMC*2:1.5e}, {M_pMC:1.5e}, {pST_pMC:4.3f}, {n_ine:6d}, {n_ell:6d}, {n_coll:6d}, {ni_FE_pMC:5d}, {ni_O_pMC:5d}, {SOI[s].name:3s}, {star:3s}, {Tbefore_pMC:6.1f}"
             print(outstr)
             MC_file.write(outstr+'\n')
             ndot_FEO = A_evap * mt.exp(-T_Aevap/T_pMC) * N_A * 4.0*PI* R_pMC**2.0 * Evap_relax
@@ -491,8 +525,8 @@ while (z<z_max):
     icount +=1
 
     # record computation time after progressing by 1 mm forward
-    if z >= x_ref+0.001:
-        x_ref = z
+    if z >= z_ref+0.001:
+        z_ref = z
         time_elapsed = time.time() - t_ref
         CompTime_file.write(f"{time_elapsed:1.8e}"+'\n')
         t_hist.append(time_elapsed)
