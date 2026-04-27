@@ -35,7 +35,7 @@ nucleation:
       factor: 6
     - name: FE7
       factor: 7
-  # Remove mode config
+  # Decomp mode config
   precursor: FEC5O5     # Decomposition of this species will create the Fe gas pool (all Fe will come from decomposed IPC)
   removed_species:
     - name: FE2O3(s)    # Remove Fe contained within this species from the Fe pool

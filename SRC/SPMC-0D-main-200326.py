@@ -226,7 +226,6 @@ if nucl_mode == 'decomp':
     X_prec = data[prec_name]
     # Read removed species from input file
     removed_species = conf['nucleation'].get('removed_species',[])
-    factor = conf['nucleation'].get('factor',[])
     
     # Calculate number of molecules
     N_permass = X_prec * f_P / k_B / f_T / f_rho
@@ -234,7 +233,9 @@ if nucl_mode == 'decomp':
 
     # Recalculate the particle metal gas pool
     f_X[metal_idx] = Delta_N * f_rho * f_T * k_B / f_P
-    for spec, fac in zip(removed_species, factor):
+    for item in removed_species:
+        spec = item['name']
+        fac = item['factor']
         print(spec+' removed from iron concentration')
         col_name = "X_" + spec
         if col_name not in data.dtype.names:         # Check if the species exists in the CSV cantera file
@@ -246,12 +247,13 @@ if nucl_mode == 'decomp':
 elif nucl_mode == 'add':
     # Read added species from input file
     added_species = conf['nucleation'].get('added_species',[])
-    factor = conf['nucleation'].get('factor',[])
     
     # Create temp metal array
     f_X_metal = np.zeros_like(f_z)
 
-    for spec, fac in zip(added_species, factor):
+    for item in added_species:
+        spec = item['name']
+        fac = item['factor']
         col_name = "X_" + spec  # column name in CSV
 
         if col_name not in data.dtype.names:         # Check if the species exists in the CSV cantera file
