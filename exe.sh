@@ -80,4 +80,4 @@ fi
 ########################################
 # Step 7: Averaging the results and statistics
 ########################################
-#python SRC/runningAverage.py $case_file $ITERATIONS
+python SRC/runningAver.py $case_file $ITERATIONS
