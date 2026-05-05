@@ -1,7 +1,6 @@
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
-from scipy.signal import savgol_filter
 from random import random
 import matplotlib
 import sys
@@ -72,13 +71,13 @@ dx1.set_yscale('log')
 infile = case + "_results/" + case + '-cantera.csv'
 # 1D sim data
 header = np.genfromtxt(infile, delimiter=',',  dtype = None, encoding =None , comments = '#', max_rows = 1)
-x_indx = np.in1d(header,head_x).nonzero()[0]
+x_indx = np.isin(header,head_x).nonzero()[0]
 x,v,T,rho = np.genfromtxt(infile, delimiter=',', comments='#', skip_header = 1, usecols=x_indx).T
 
 # Set the nucleation species array 
 tot_y = np.zeros((len(T)))
 for i, val in enumerate(head_y):
-    y_indx = np.in1d(header,val).nonzero()[0]
+    y_indx = np.isin(header,val).nonzero()[0]
     y = np.genfromtxt(infile, delimiter=',', comments='#',skip_header = 1, usecols=y_indx).T
     if val == 'X_FEC5O5':
         tot_y = y
@@ -109,7 +108,8 @@ theta = sigma * s1 / k_B / T
 # Number of molecules in a critical cluster
 g_star = (2.0*theta/3.0/np.log(Sat))**3
 # Critical diameter
-d_star = (g_star * v1 * 3.0/4.0 / PI) ** (1.0/3.0) * 2
+d_star = 2.0 * np.cbrt(g_star * v1 * (3.0/(4.0*np.pi)))
+#d_star_old = (g_star * v1 * 3.0/4.0 / PI) ** (1.0/3.0) * 2
 
 # Saturation ratio - alternative: correction of the saturation equilibrium concentration of monomers:
 #   - both surface tension (sigma) and saturation concentration (n_sat) can depend on the size of the critical cluster
@@ -140,7 +140,7 @@ lines.append(f"{x[0]},0.0\n")
 #########################
 # Start actual nucleation estimation
 # Open the nucleation output file
-with open(case + "-nuclest.csv", "w") as file_c:
+with open(case + "_results/" + case + "-nuclest.csv", "w") as file_c:
     
     # Write the x coordinate
     file_c.write(f"{x[0]},0.0\n")
