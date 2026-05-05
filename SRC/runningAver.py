@@ -3,6 +3,7 @@ import numpy as np
 import math
 
 case_name = sys.argv[1]
+case_base_name = case_name.split('.')[0]
 iter_mult = int(sys.argv[2])
 
 # initialise global arrays
@@ -20,7 +21,7 @@ for j in range(iter_mult):
     z=[]
     
     # read data from file
-    file_name = case_name + '_results/' + case_name + '-SPMC-' + str(j + 1) + '.csv'
+    file_name = case_base_name + '_results/' + case_base_name + '-SPMC-' + str(j + 1) + '.csv'
     time, DFB, Tp, Dp, Tbf = np.genfromtxt(file_name, delimiter=',', comments='#', usecols=(0, 1, 3, 4, 14), unpack=True)
     
     # data sampling interval
@@ -205,13 +206,13 @@ sigma_Dp_final[mask] = np.sqrt(sigma_Dp[mask] / (divisor[mask] - 1))
 sigma_Tp_final = sigma_Tp / Tp_tot * 100
 sigma_Dp_final = sigma_Dp / Dp_tot * 100
 
-countfile_name = case_name + '_results/' + case_name + '-count.csv'
+countfile_name = case_base_name + '_results/' + case_base_name + '-count.csv'
 with open(countfile_name, 'w') as countfile:
     for i in range(len(z_it)):
         count_str = f"{z_it[i]:1.8e}, {FEcount_it[i]:1.8e}, {O2count_it[i]:1.8e}, {O1count_it[i]:1.8e}, {H2Ocount_it[i]:1.8e}, {H2count_it[i]:1.8e}, {H1count_it[i]:1.8e}, {OHcount_it[i]:1.8e}, {EVcount_it[i]:1.8e}, {total_it[i]:1.8e}, {ratio_final_it[i]:1.8e}\n"
         countfile.write(count_str)
 
-resultfile_name = case_name + '_results/' + case_name + '-average.csv'
+resultfile_name = case_base_name + '_results/' + case_base_name + '-average.csv'
 with open(resultfile_name, 'w') as resultfile:
     for i in range(len(time_tot)):
         result_str = f"{time_tot[i]:1.8e}, {x_tot[i]:1.8e}, {Tp_tot[i]:1.8e}, {Dp_tot[i]:1.8e}, {sigma_Tp[i]:1.8e}, {sigma_Dp[i]:1.8e}, {Tbf_tot[i]:1.8e}\n"
