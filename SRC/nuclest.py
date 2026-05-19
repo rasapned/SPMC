@@ -22,7 +22,7 @@ k_B = R_m / N_A                 # Boltzmann const. 1.38e-23 in m^2*kg/s^2/K or J
 # Material constants - Fe
 m_a_Fe = 55.845e-3              # molar mass
 rho_Fe = 7874.0                 # density
-r1 = 1.6e-10                    # Molecule radius
+r1 = 1.605e-10                    # Molecule radius
 
 # Determine molecule properties like diameter, area, volume...
 # Option 1: using predefined molecule radius r1

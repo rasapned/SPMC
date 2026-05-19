@@ -115,7 +115,7 @@ class proto_SOI:        # Define the collision/reaction class
     def get_energy(self, pST_rat, pST_max):
         if self.energy_mode == "surf_partner":
             if random() < pST_rat:
-                return self.Hr_surplus
+                return self.Hr + self.Hr_surplus
             return self.Hr
 
         elif self.energy_mode == "pST_lin_interp":
@@ -175,6 +175,7 @@ if conf['MC_params']['z_max'] == 'auto':                    # MC sim. until z_ma
     t_max    = f_time[-1]                                       # Same as last Cantera flame point
 else:
     z_max    = float(conf['MC_params']['z_max'])                 # Read the value    
+    t_max    = f_time[-1]                                       # Same as last Cantera flame point
 MBD_points  = int(conf['MC_params']['MBD_points'])      # Maxwell-Boltzmann func. distribution resolution
 MBD_width   = float(conf['MC_params']['MBD_width'])     # Distribution width (multiple of mean molecule speed)
 MBD_deltaT  = float(conf['MC_params']['MBD_deltaT'])    # max. temp. deviation from current before recalculating Maxwell-Botzmann

@@ -56,7 +56,7 @@ collisions:
   - name: Fe           # incident species name
     shape: 0           # no. of rotational DoF -1 (0: monatomic (1 rotational DoF))
     T_a: 0.0           # Activation temperature (K)
-    Hr: 120000.0       # Enthalpy change (J/mol) 
+    Hr: 118000.0       # Enthalpy change (J/mol) 
     energy_mode: surf_partner   # surf_partner: different energy value if gas molec. hits oxygen at the surface
     Hr_surplus: 289000.0        # Additional energy if oxygen hit at the surface  
     collision_type: stick        # collision type: stick (molecule always adheres to the particle) 
@@ -71,7 +71,7 @@ collisions:
     T_a: 1000.0        # Activation temperature (K)
     Hr: 160000.0       # Enthalpy change (J/mol) 
     energy_mode: pST_lin_interp # different energy value depending on the particle stoichiometry, linearly int. between 0-1 oxidation level
-    Hr_surplus: 289000.0        # Additional energy at maximum oxidation level 
+    Hr_surplus: 160000.0        # Additional energy at maximum oxidation level 
     collision_type: oxi          # collision type: oxi (reacts with available Fe at the part. surface)
     star: o            # collision type symbol (o: oxidation)
     addO: 1            # collision outcome: no. of oxygen atoms added to the particle 
@@ -84,7 +84,7 @@ collisions:
     T_a: 0.0           # Activation temperature (K)
     Hr: 658000.0       # Enthalpy change (J/mol) 
     energy_mode: pST_lin_interp # different energy value depending on the particle stoichiometry, linearly int. between 0-1 oxidation level
-    Hr_surplus: 289000.0        # Additional energy at maximum oxidation level 
+    Hr_surplus: 160000.0        # Additional energy at maximum oxidation level 
     collision_type: oxi          # collision type: oxi (reacts with available Fe at the part. surface)
     star: o            # collision type symbol (o: oxidation)
     addO: 1            # collision outcome: no. of oxygen atoms added to the particle 
