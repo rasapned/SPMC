@@ -70,7 +70,7 @@ case_base_name = case_file_name.split('.')[0]
 print(f'case name: {case_base_name}')
 
 SPMC_save_file = case_base_name+'-SPMC'
-cantera_save_file = case_base_name + "_results/" +  case_base_name+'-cantera.csv'
+cantera_save_file = "RESULTS/" + case_base_name + "_results/" +  case_base_name+'-cantera.csv'
 CFD_T_of_x_file = 'T_of_x-'+case_base_name+'.csv'
 cantera_conc_file = case_base_name+'-ConcCant.csv'
 

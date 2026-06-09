@@ -68,7 +68,7 @@ dx1.set_ylabel(r'Cumulative nuclei / 1/m$^3$', fontsize=18)
 dx1.set_yscale('log')
 
 # Read the grid, velocity, species concentration and temperature data from cantera file
-infile = case + "_results/" + case + '-cantera.csv'
+infile = 'RESULTS/' + case + "_results/" + case + '-cantera.csv'
 # 1D sim data
 header = np.genfromtxt(infile, delimiter=',',  dtype = None, encoding =None , comments = '#', max_rows = 1)
 x_indx = np.isin(header,head_x).nonzero()[0]
@@ -140,7 +140,7 @@ lines.append(f"{x[0]},0.0\n")
 #########################
 # Start actual nucleation estimation
 # Open the nucleation output file
-with open(case + "_results/" + case + "-nuclest.csv", "w") as file_c:
+with open('RESULTS/' + case + "_results/" + case + "-nuclest.csv", "w") as file_c:
     
     # Write the x coordinate
     file_c.write(f"{x[0]},0.0\n")
@@ -208,7 +208,7 @@ for idx,val in enumerate(Jk_star):
         break
 
 # Open the nucleation output file and write results
-with open(case + "_results/" + case + "-nuclest.csv", "w") as file_c:
+with open('RESULTS/' + case + "_results/" + case + "-nuclest.csv", "w") as file_c:
     file_c.write(f"# Start position index: {idx} \n")
     file_c.writelines(lines)
  
@@ -221,4 +221,4 @@ dx1.plot(x[:j+1]*1e3, Nk_star_cum, '-', color=colour, linewidth=6)
 fig.tight_layout()
 plt.show()
 plt.close()
-fig.savefig(f'{case}_results/nuclest_{case}.png')
+fig.savefig(f'RESULTS/{case}_results/nuclest_{case}.png')

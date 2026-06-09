@@ -28,8 +28,8 @@ case_name="${case_file%.case}"
 results_dir="${case_name}_results"
 
 # Check if directory exists
-if [[ -d "$results_dir" ]]; then
-    read -rp "Directory '$results_dir' already exists. Continue and possibly overwrite contents? [y/N]: " answer
+if [[ -d "RESULTS/$results_dir" ]]; then
+    read -rp "Directory 'RESULTS/$results_dir' already exists. Continue and possibly overwrite contents? [y/N]: " answer
     case "$answer" in
         [yY]|[yY][eE][sS])
             echo "Continuing..."
@@ -40,8 +40,8 @@ if [[ -d "$results_dir" ]]; then
             ;;
     esac
 else
-    mkdir -p "$results_dir"
-    echo "Created results directory: $results_dir"
+    mkdir -p "RESULTS/$results_dir"
+    echo "Created results directory: RESULTS/$results_dir"
 fi
 
 # Step 5: Run Python scripts: solve Cantera flame and estimate number of seeds
@@ -51,5 +51,5 @@ python SRC/nuclest.py "$case_file"
 echo "Number of seeds estimated and saved to file!"
 
 # Step 6: Copy the case file, T-of-x and so on
-cp $case_file $results_dir
-cp T_of_x* $results_dir
+cp $case_file "RESULTS/$results_dir"
+cp T_of_x* "RESULTS/$results_dir"

@@ -14,10 +14,10 @@ import cantera as ct
 case_file_name = sys.argv[1]
 output_file = sys.argv[2]
 case_base_name = case_file_name.split('.')[0]
-SPMC_save_file = case_base_name + "_results/" + case_base_name+'-SPMC-'+ output_file+ '.csv'
+SPMC_save_file = "RESULTS/" + case_base_name + "_results/" + case_base_name+'-SPMC-'+ output_file+ '.csv'
 CFD_T_of_x_file = 'T_of_x-'+case_base_name+'.csv'
-cantera_save_file = case_base_name + "_results/" + case_base_name+'-cantera.csv'
-nuclest_file = case_base_name + "_results/" + case_base_name+'-nuclest.csv'
+cantera_save_file = "RESULTS/" + case_base_name + "_results/" + case_base_name+'-cantera.csv'
+nuclest_file = "RESULTS/" + case_base_name + "_results/" + case_base_name+'-nuclest.csv'
 with open(case_file_name) as f:
     for line in f:
         line = line.split("#", 1)[0].strip()
@@ -307,7 +307,7 @@ count_ell = 0           # currently not in use, but later for reduced output
 t_hist = []
 z_ref = f_z[start_idx]
 t_ref = time.time()
-CompTime_file = open(case_base_name + '_results/CompTime.dat','w')
+CompTime_file = open('RESULTS/' + case_base_name + '_results/CompTime.dat','w')
 
 #---------------------------------
 # Maxwell Boltzmann cum. function

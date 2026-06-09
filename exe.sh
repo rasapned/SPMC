@@ -39,7 +39,7 @@ echo "Found case file: $case_file"
 # Step 4: Determine results directory
 ########################################
 case_name="${case_file%.case}"
-results_dir="${case_name}_results"
+results_dir="RESULTS/${case_name}_results"
 
 ########################################
 # Step 5: Ensure results directory exists

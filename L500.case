@@ -1,0 +1,14 @@
+### CASE INPUT FILE ###
+
+# Flame settings
+VSdot_H2   400.0         # sccm at IUPAC definition: 0°C and 1 bar 
+VSdot_O2   400.0         # sccm
+VSdot_AR   600.0         # sccm
+X_IPC      500e-6        # ppm, will be substracted from X_AR
+yaml_file   ./Iron_elte_Syngas-newTransp.yaml
+# non-standard flame settings
+scale_species	OH	 # list of artificially scaled species (for sensibility study) 
+scaling_factor  1	 # list of scaling factors
+
+# Nuclest settings
+nucl_start_pos	0.3	 # fraction of max. nucleation rate at which 
