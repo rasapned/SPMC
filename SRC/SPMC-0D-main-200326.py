@@ -65,7 +65,7 @@ gas = ct.Solution(rxmech)
 ################### READ PARTICLE PROPERTIES ##################################
 
 # Open input file
-with open('part_params.yaml', 'r') as f:
+with open(f"../part_params.yaml", 'r') as f:
     conf = yaml.safe_load(f)
 
 # Particle parameters

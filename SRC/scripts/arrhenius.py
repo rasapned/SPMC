@@ -96,15 +96,16 @@ for n, name in enumerate(cases):
     
     #### READ PART ####
 
-    mc_file = name +'-average.csv' # contains the average values of the Monte Carlo simulations (DFB, particle diameter, particle temperature, temperature before reaction)
-    mc_count_file = name +'-count.csv' # contains the collision counts for each species and the total number of collisions (for reaction constant calculation)
+    mc_file = f"../../RESULTS/{name}_results/{name}-average.csv" # contains the average values of the Monte Carlo simulations (DFB, particle diameter, particle temperature, temperature before reaction)
+    mc_count_file = f"../../RESULTS/{name}_results/{name}-count.csv" # contains the collision counts for each species and the total number of collisions (for reaction constant calculation)
 
     # Cantera 1D sim: read the grid, temperature, density and mole fractions of the gaseous iron containing species
-    sim1D_XFEC5O5, sim1D_XFE2O3, sim1D_XFEO2, sim1D_XFEO, sim1D_XFEOH, sim1D_XFEO2H2, sim1D_XFE2OOOH = np.genfromtxt(name+'-cantera.csv', delimiter=',', comments='#', skip_header=1, usecols=(17,36,10,7,8,9,34)).T
-    sim1D_z, sim1D_Tg, sim1D_rho = np.genfromtxt(name+'-cantera.csv', delimiter=',', comments='#',skip_header=1, usecols=(0,4,5)).T
-    
+    #sim1D_XFEC5O5, sim1D_XFE2O3, sim1D_XFEO2, sim1D_XFEO, sim1D_XFEOH, sim1D_XFEO2H2, sim1D_XFE2OOOH = np.genfromtxt(name+'-cantera.csv', delimiter=',', comments='#', skip_header=1, usecols=(17,36,10,7,8,9,34)).T
+    sim1D_XFEC5O5, sim1D_XFE2O3, sim1D_XFEO2, sim1D_XFEO, sim1D_XFEOH, sim1D_XFEO2H2, sim1D_XFE2OOOH = np.genfromtxt(f"../../RESULTS/{name}_results/{name}-cantera.csv", delimiter=',', comments='#', skip_header=1, usecols=(17,36,10,7,8,9,34)).T
+    #sim1D_z, sim1D_Tg, sim1D_rho = np.genfromtxt(name+'-cantera.csv', delimiter=',', comments='#',skip_header=1, usecols=(0,4,5)).T
+    sim1D_z, sim1D_Tg, sim1D_rho = np.genfromtxt(f"../../RESULTS/{name}_results/{name}-cantera.csv", delimiter=',', comments='#',skip_header=1, usecols=(0,4,5)).T
     # Cantera concentrations of species of interest
-    c_O2, c_O, c_H2O, c_H2, c_H, c_OH, c_FEC5O5, c_FE2O3, c_FEO2, c_FEO, c_FEO2H2,c_FE2OOOH = np.genfromtxt(name+'-ConcCant.csv', delimiter=',', comments='#').T
+    c_O2, c_O, c_H2O, c_H2, c_H, c_OH, c_FEC5O5, c_FE2O3, c_FEO2, c_FEO, c_FEO2H2,c_FE2OOOH = np.genfromtxt(f"../../RESULTS/{name}_results/{name}-ConcCant.csv", delimiter=',', comments='#', skip_header=1).T
 
     # MC-Results
     DFB, Tp, Dp, Tbf = np.genfromtxt(mc_file, delimiter=',', comments='#', usecols=(1,2,3,6)).T # DFB - distance from burner, Tp - particle temperature, Dp - particle diameter, Tbf - temperature before reaction (after thermalisation)
@@ -135,6 +136,12 @@ for n, name in enumerate(cases):
     X_FE += -sim1D_XFE2O3 * 2 - sim1D_XFEO2 - sim1D_XFEO - sim1D_XFEOH - sim1D_XFEO2H2 - sim1D_XFE2OOOH * 2     # Deduct iron oxidic species 
     X_FE = np.clip(X_FE,0.0,None)                                           # clip negative values
     c_FE = X_FE * 3000 / sim1D_Tg / R_g                                     # convert again to concentration units (kg/m^3)
+
+    print("sim1D_z:", sim1D_z.shape)
+    print("sim1D_Tg:", sim1D_Tg.shape)
+
+    print("c_O2:", c_O2.shape)
+    print("c_O :", c_O.shape)
 
     #interpolate concentrations to C_Z grid and convert to mol
     c_FE_int    = np.interp(C_Z, sim1D_z, c_FE) * 1e3                 
@@ -260,9 +267,9 @@ aax7.set_title('R6: OH')
 #### ARRHENIUS PARAMETER FITTING ####
 
 # Arrhenius equation with surface coverage parameters
-ef arrhSurf(Tp_glob, cov_OFe, A, b, E_a, alpha_k, m_k, E_k):
+def arrhSurf(Tp_glob, cov_OFe, A, b, E_a, alpha_k, m_k, E_k):
     rateConst = A * (Tp_glob/298)**b * np.exp((-E_a - E_k * cov_OFe) / R_g / Tp_glob) * 10**(cov_OFe*alpha_k) * cov_OFe ** m_k 
-    return rateConstd
+    return rateConst
 
 def arrhPlot(Tp_inv, A, b, E_a):
     arrhPlotPoint = np.log(A) - b * (np.log(Tp_inv) - np.log(1/298)) - E_a  / R_g * Tp_inv 

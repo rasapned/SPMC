@@ -72,7 +72,7 @@ print(f'case name: {case_base_name}')
 SPMC_save_file = case_base_name+'-SPMC'
 cantera_save_file = "RESULTS/" + case_base_name + "_results/" +  case_base_name+'-cantera.csv'
 CFD_T_of_x_file = 'T_of_x-'+case_base_name+'.csv'
-cantera_conc_file = case_base_name+'-ConcCant.csv'
+cantera_conc_file = "RESULTS/" + case_base_name + "_results/" + case_base_name+'-ConcCant.csv'
 
 
 # set some constants
@@ -96,6 +96,7 @@ ct.suppress_thermo_warnings()
 
 # Read the input case file
 cfg = read_case_file(case_file_name)
+
 
 VSdot_H2 = cfg["VSdot_H2"]
 VSdot_O2 = cfg["VSdot_O2"]
@@ -136,6 +137,8 @@ print('composition = '+comp)
 
 # create the cantera gas object
 gas = ct.Solution(rxmech)
+
+print([s for s in gas.species_names if "Fe" in s])
 
 # compute the mean molecular weight of the unburned mixture
 Wm = X_H2*gas.molecular_weights[gas.species_index('H2')] +\
@@ -213,5 +216,28 @@ with open(cantera_save_file, 'w') as f_out:
     for j in range(len(grid)):
         row = [grid[j], velocity[j], spread_rate[j], lam[j], P,  T[j], density[j], *X_mod[:, j]]
         f_out.write(','.join(f"{val:.9e}" for val in row) + '\n')
+
+# generating a file with the concentrations of the species of interest (for Arrhenius plot)
+with open(cantera_conc_file, 'w') as f_out:
+
+    # header
+    header = 'c_O2,c_O,c_H2O,c_H2,c_H,c_OH,c_FEC5O5,c_FE2O3(s),c_FEO2,c_FEO,c_FEO2H2,c_FE2OOOH\n#Concentration given in kmol/m^3\n'
+    f_out.write(header)
+
+    for j in range(len(grid)):
+        c_O2 = X_mod[gas.species_index('O2'), j] * density[j] / gas.molecular_weights[gas.species_index('O2')] #Concentration given in kmol/m^3
+        c_O = X_mod[gas.species_index('O'), j] * density[j] / gas.molecular_weights[gas.species_index('O')]
+        c_H2O = X_mod[gas.species_index('H2O'), j] * density[j] / gas.molecular_weights[gas.species_index('H2O')]
+        c_H2 = X_mod[gas.species_index('H2'), j] * density[j] / gas.molecular_weights[gas.species_index('H2')]
+        c_H = X_mod[gas.species_index('H'), j] * density[j] / gas.molecular_weights[gas.species_index('H')]
+        c_OH = X_mod[gas.species_index('OH'), j] * density[j] / gas.molecular_weights[gas.species_index('OH')]
+        c_FEC5O5 = X_mod[gas.species_index('FEC5O5'), j] * density[j] / gas.molecular_weights[gas.species_index('FEC5O5')]
+        c_FE2O3= X_mod[gas.species_index('FE2O3(s)'), j] * density[j] / gas.molecular_weights[gas.species_index('FE2O3(s)')]
+        c_FEO2 = X_mod[gas.species_index('FEO2'), j] * density[j] / gas.molecular_weights[gas.species_index('FEO2')]
+        c_FEO = X_mod[gas.species_index('FEO'), j] * density[j] / gas.molecular_weights[gas.species_index('FEO')]
+        c_FEO2H2 = X_mod[gas.species_index('FEO2H2'), j] * density[j] / gas.molecular_weights[gas.species_index('FEO2H2')]
+        c_FE2OOOH = X_mod[gas.species_index('FE2OOOH'), j] * density[j] / gas.molecular_weights[gas.species_index('FE2OOOH')]
+        row = [c_O2, c_O, c_H2O, c_H2, c_H, c_OH, c_FEC5O5, c_FE2O3, c_FEO2, c_FEO, c_FEO2H2, c_FE2OOOH]
+        f_out.write(','.join(f"{val:.9e}" for val in row) + '\n') 
 
 ###################### CANTERA PART END ########################################
