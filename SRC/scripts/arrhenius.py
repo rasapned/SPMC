@@ -41,6 +41,7 @@ N_A = 6.02214076 * 1e23 # 1/mol
 PI = 3.1415926
 R_g = 8.31446           # J/mol/K
 k_B = 1.380649 * 1e-23  # J/K
+T_ref = 298          # K
 
 # define which cases should be read and used for optimisation
 cases = ['L500'] #,'S500','R500']#,'XL500']
@@ -68,6 +69,15 @@ d_H2   = 2.89e-10
 d_O   = d_O2/2
 d_H   = d_H2/2
 d_OH  = 0.97e-10
+
+# Include/Exclude temperature steric factor b
+b_switch = False
+mk_switch = False   
+alpha_switch = False
+Ek_switch = False
+
+# Release the activation energy fitting
+blockE_a = False
 
 # temperature sampling for the final reaction constant curve
 T_bf = np.arange(850,1900,5)
@@ -116,12 +126,12 @@ for n, name in enumerate(cases):
     #### REACTION CONSTANTS CALCULATION PART ####
 
     # get particle surface area, coverage (O/Fe), particle and gas temperature at all C_Z (collision data grid)
-    p_diam = np.interp(C_Z, DFB, Dp)
+    p_diam = np.interp(C_Z, DFB, Dp) #Unit of Dp is m, so p_diam is in m
     p_Temp = np.interp(C_Z, DFB, Tbf)           # Tbf - temperature before the reaction, but after thermalisation
     g_Temp = np.interp(C_Z, sim1D_z, sim1D_Tg)
     
     # get particle surface 
-    p_surf = PI * p_diam**2 
+    p_surf = PI * p_diam**2 #Unit of p_surf is m^2
 
     # save current case temperature to the global array
     Tp_glob = np.concatenate((Tp_glob,p_Temp))
@@ -144,7 +154,7 @@ for n, name in enumerate(cases):
     print("c_O :", c_O.shape)
 
     #interpolate concentrations to C_Z grid and convert to mol
-    c_FE_int    = np.interp(C_Z, sim1D_z, c_FE) * 1e3                 
+    c_FE_int    = np.interp(C_Z, sim1D_z, c_FE) * 1e3 #Unit of c_FE is kmol/m^3, so multiply by 1e3 to get mol/m^3               
     c_O2_int    = np.interp(C_Z, sim1D_z, c_O2) * 1e3 
     c_O_int     = np.interp(C_Z, sim1D_z, c_O)  * 1e3
     c_H2O_int   = np.interp(C_Z, sim1D_z, c_H2O)  * 1e3
@@ -233,6 +243,15 @@ for n, name in enumerate(cases):
     for o in range(order+1):
         rat_bf[n][:]   += param_rat[o] *T_bf**(order-o)
 
+# Store the global arrays as numpy arrays
+Tp_glob = np.array(Tp_glob)
+cov_OFe = np.array(cov_OFe)
+
+min_len = min(len(Tp_glob), len(cov_OFe))
+
+Tp_glob = Tp_glob[:min_len]
+cov_OFe = cov_OFe[:min_len]
+
 #### GLOBAL PLOTTING SETTINGS ####
 
 aax2.set_ylim(57.8,62.8)
@@ -268,21 +287,36 @@ aax7.set_title('R6: OH')
 
 # Arrhenius equation with surface coverage parameters
 def arrhSurf(Tp_glob, cov_OFe, A, b, E_a, alpha_k, m_k, E_k):
-    rateConst = A * (Tp_glob/298)**b * np.exp((-E_a - E_k * cov_OFe) / R_g / Tp_glob) * 10**(cov_OFe*alpha_k) * cov_OFe ** m_k 
+    rateConst = A * (Tp_glob/T_ref)**b * np.exp((-E_a - E_k * cov_OFe) / R_g / Tp_glob) * 10**(cov_OFe*alpha_k) * cov_OFe ** m_k 
     return rateConst
 
 def arrhPlot(Tp_inv, A, b, E_a):
-    arrhPlotPoint = np.log(A) - b * (np.log(Tp_inv) - np.log(1/298)) - E_a  / R_g * Tp_inv 
+    arrhPlotPoint = np.log(A) - b * (np.log(Tp_inv) - np.log(1/T_ref)) - E_a  / R_g * Tp_inv 
     return arrhPlotPoint
 
 # loss function to be minimised (square difference between arrh. curve and the actual datapoint)
-def loss(para,k_spec, method):
+# def loss(para,k_spec, method):
+#     if method == 'lin':
+#         diff = k_spec - arrhSurf(Tp_glob, cov_OFe, para[0], para[1], para[2], para[3], para[4], para[5])
+#     elif method == 'log': 
+#         k_fit = arrhSurf(Tp_glob, cov_OFe, para[0], para[1], para[2], para[3], para[4], para[5])
+#         eps = 1e-300
+#         k_spec = np.maximum(k_spec, eps) ###### von mir eingefügt, damit log nicht negativ wird
+#         diff = np.log(np.maximum(k_spec, eps)) - np.log(np.maximum(k_fit, eps))
+#     return np.sum(diff**2)
+
+def loss(para, k_spec, method):
+    k_fit = arrhSurf(Tp_glob, cov_OFe, para[0], para[1], para[2], para[3], para[4], para[5])
+    eps = 1e-300
+    # Schutz gegen 0 / negative Werte
+    k_spec_safe = np.clip(k_spec, eps, None)
+    k_fit_safe  = np.clip(k_fit,  eps, None)
     if method == 'lin':
-        diff = k_spec - arrhSurf(Tp_glob, cov_OFe, para[0], para[1], para[2], para[3], para[4], para[5])
-    elif method == 'log': 
-        k_fit = arrhSurf(Tp_glob, cov_OFe, para[0], para[1], para[2], para[3], para[4], para[5])
-        eps = 1e-300
-        diff = np.log(np.maximum(k_spec, eps)) - np.log(np.maximum(k_fit, eps))
+        diff = k_spec_safe - k_fit_safe
+    elif method == 'log':
+        diff = np.log(k_spec_safe) - np.log(k_fit_safe)
+    else:
+        raise ValueError("method must be 'lin' or 'log'")
     return np.sum(diff**2)
 
 # log-RMSE: 
@@ -296,19 +330,12 @@ specArr  = ['O2', 'O', 'H2O', 'H2', 'H', 'OH']
 constArr = [k_O2, k_O, k_H2O, k_H2, k_H, k_OH]
 axArr    = [aax2,  aax3,  aax4, aax5, aax6, aax7]
 method = ['lin', 'lin', 'log', 'log', 'log', 'lin']
+method_log = ['log', 'log', 'log', 'log', 'log', 'log']
+method_lin = ['lin', 'lin', 'lin', 'lin', 'lin', 'lin']
 
 # Activation temperature for each species as used in SPMC
 actTemp =  np.array([1000.0,0.0,1300.0,2000.0,500.0,2200.0])
 actEner = actTemp * R_g
-
-# Include/Exclude temperature steric factor b
-b_switch = False
-mk_switch = False   
-alpha_switch = False
-Ek_switch = False
-
-# Release the activation energy fitting
-blockE_a = False
 
 # Set minimisation solver method
 solver = 'Mixed'
@@ -346,12 +373,14 @@ else:
 csv_file = open("rates_calc.csv", 'w', newline='')
 csv_writer = csv.writer(csv_file)
 
+# original code
 for s, spec in enumerate(constArr):
     if blockE_a:
         Ea_bound = (actEner[s], actEner[s])
     else:
         Ea_bound = (None,None)
     result = minimize(loss, init_guess, bounds = ((None,None),b_bound,Ea_bound,alpha_bound,mk_bound,Ek_bound), method=solvArr[s], args = (spec,method[s]))
+    #opt_Spec[s,:] = result.x
     opt_Spec[s,0] = opt_Spec[s,0] * N_A
     csv_writer.writerow(opt_Spec[s])
     storeFun[s] = result.fun
@@ -366,3 +395,78 @@ for s, spec in enumerate(constArr):
     print(f'{specArr[s]} log-RMSE = {q_logrmse:.4f}')
 
 fig2.savefig('ArrhPlots_test.png',dpi=600)
+
+# for s, spec in enumerate(constArr):
+#     if blockE_a:
+#         Ea_bound = (actEner[s], actEner[s])
+#     else:
+#         Ea_bound = (None,None)
+#     result = minimize(loss, init_guess,
+#                    bounds=((None,None), b_bound, Ea_bound, alpha_bound, mk_bound, Ek_bound), method=solvArr[s], args=(spec, method[s]))
+#     opt_Spec[s,:] = result.x.copy()
+#     opt_Spec[s,0] *= N_A
+#     csv_writer.writerow(opt_Spec[s])
+#     storeFun[s] = result.fun
+#     for i in range(n_cases):
+#         checkFun = arrhPlot(1/T_bf, opt_Spec[s,0], opt_Spec[s,1], opt_Spec[s,2])
+#         axArr[s].plot(np.flip(1000/T_bf), np.flip(checkFun ), '--', linewidth = 0.7, color = 'k')
+#     print(f'Species {specArr[s]} : {opt_Spec[s]}')
+
+#     # Fit evaluation
+#     k_fit = arrhSurf(Tp_glob, cov_OFe, *result.x)
+#     q_logrmse = log_rmse(spec, k_fit)
+#     print(f'{specArr[s]} log-RMSE = {q_logrmse:.4f}')
+
+# fig2.savefig('ArrhPlots_test.png',dpi=600)
+
+# # test method_log
+# for s, spec in enumerate(constArr):
+#     if blockE_a:
+#         Ea_bound = (actEner[s], actEner[s])
+#     else:
+#         Ea_bound = (None,None)
+#     result = minimize(loss, init_guess,
+#                    bounds=((None,None), b_bound, Ea_bound, alpha_bound, mk_bound, Ek_bound), method=solvArr[s], args=(spec, method_log[s]))
+#     opt_Spec[s,:] = result.x.copy()
+#     opt_Spec[s,0] *= N_A
+#     csv_writer.writerow(opt_Spec[s])
+#     storeFun[s] = result.fun
+#     for i in range(n_cases):
+#         k_plot = arrhSurf(T_bf, cov_OFe, *result.x)
+#         checkFun = np.log(k_plot)
+#         axArr[s].plot(np.flip(1000/T_bf), np.flip(checkFun ), '--', linewidth = 0.7, color = 'k')
+#     print(f'Species {specArr[s]} : {opt_Spec[s]}')
+
+#     # Fit evaluation
+#     k_fit = arrhSurf(Tp_glob, cov_OFe, *result.x)
+#     k_true = spec
+#     q_logrmse = log_rmse(k_true, k_fit)
+#     print(f'{specArr[s]} log-RMSE = {q_logrmse:.4f}')
+
+# fig2.savefig('ArrhPlots_test_log.png',dpi=600)
+
+# # test method_lin
+# for s, spec in enumerate(constArr):
+#     if blockE_a:
+#         Ea_bound = (actEner[s], actEner[s])
+#     else:
+#         Ea_bound = (None,None)
+#     result = minimize(loss, init_guess, bounds=((None,None), b_bound, Ea_bound, alpha_bound, mk_bound, Ek_bound), method=solvArr[s], args=(constArr[s], method[s]))
+#     opt_Spec[s,:] = result.x.copy()
+#     opt_Spec[s,0] *= N_A
+#     csv_writer.writerow(opt_Spec[s])
+#     storeFun[s] = result.fun
+#     for i in range(n_cases):
+#         checkFun = arrhSurf(T_bf, np.interp(T_bf, Tp_glob, cov_OFe), *result.x)
+#         #checkFun = arrhPlot(1/T_bf, opt_Spec[s,0], opt_Spec[s,1], opt_Spec[s,2])
+#         x = 1000 / T_bf
+#         idx = np.argsort(x)
+#         axArr[s].plot(x[idx], checkFun[idx], '--', linewidth=0.7, color='k')
+#     print(f'Species {specArr[s]} : {opt_Spec[s]}')
+
+#     # Fit evaluation
+#     k_fit = arrhSurf(Tp_glob, cov_OFe, *result.x)
+#     q_logrmse = log_rmse(spec, k_fit)
+#     print(f'{specArr[s]} log-RMSE = {q_logrmse:.4f}')
+
+# fig2.savefig('ArrhPlots_test_lin.png',dpi=600)

@@ -223,21 +223,63 @@ with open(cantera_conc_file, 'w') as f_out:
     # header
     header = 'c_O2,c_O,c_H2O,c_H2,c_H,c_OH,c_FEC5O5,c_FE2O3(s),c_FEO2,c_FEO,c_FEO2H2,c_FE2OOOH\n#Concentration given in kmol/m^3\n'
     f_out.write(header)
+    
+    W_mix = 0
+    for spec in gas.species_names:
+        #print(f"Species: {spec}, Index: {gas.species_index(spec)}")
+        W_mix += X_mod[gas.species_index(spec), :] * gas.molecular_weights[gas.species_index(spec)]
+    
+    #for j in range(len(grid)):
+    c_O2 = X_mod[gas.species_index('O2'), :] * density / W_mix #Concentration given in kmol/m^3
+    c_O = X_mod[gas.species_index('O'), :] * density / W_mix
+    c_H2O = X_mod[gas.species_index('H2O'), :] * density / W_mix
+    c_H2 = X_mod[gas.species_index('H2'), :] * density / W_mix
+    c_H = X_mod[gas.species_index('H'), :] * density / W_mix
+    c_OH = X_mod[gas.species_index('OH'), :] * density / W_mix
+    c_FEC5O5 = X_mod[gas.species_index('FEC5O5'), :] * density / W_mix
+    c_FE2O3= X_mod[gas.species_index('FE2O3(s)'), :] * density / W_mix
+    c_FEO2 = X_mod[gas.species_index('FEO2'), :] * density / W_mix
+    c_FEO = X_mod[gas.species_index('FEO'), :] * density / W_mix
+    c_FEO2H2 = X_mod[gas.species_index('FEO2H2'), :] * density / W_mix
+    c_FE2OOOH = X_mod[gas.species_index('FE2OOOH'), :] * density / W_mix
+    print("H2 conc formula =", c_H2[gas.species_index('H2')])
+    #print("H2 conc cantera =", gas.concentrations[gas.species_index('H2')])
+    print("H2 conc cantera =", gas.concentrations)
+    print(X_mod.shape)
+    print(gas.concentrations.shape)
+    print(gas.species_index('H2'))
+    #print(f.X[gas.species_index('H2'),200])
+    #print(X_mod[gas.species_index('H2'),200])
+    row = [c_O2, c_O, c_H2O, c_H2, c_H, c_OH, c_FEC5O5, c_FE2O3, c_FEO2, c_FEO, c_FEO2H2, c_FE2OOOH]
+    f_out.write(','.join(f"{val:.9e}" for val in row) + '\n') 
 
-    for j in range(len(grid)):
-        c_O2 = X_mod[gas.species_index('O2'), j] * density[j] / gas.molecular_weights[gas.species_index('O2')] #Concentration given in kmol/m^3
-        c_O = X_mod[gas.species_index('O'), j] * density[j] / gas.molecular_weights[gas.species_index('O')]
-        c_H2O = X_mod[gas.species_index('H2O'), j] * density[j] / gas.molecular_weights[gas.species_index('H2O')]
-        c_H2 = X_mod[gas.species_index('H2'), j] * density[j] / gas.molecular_weights[gas.species_index('H2')]
-        c_H = X_mod[gas.species_index('H'), j] * density[j] / gas.molecular_weights[gas.species_index('H')]
-        c_OH = X_mod[gas.species_index('OH'), j] * density[j] / gas.molecular_weights[gas.species_index('OH')]
-        c_FEC5O5 = X_mod[gas.species_index('FEC5O5'), j] * density[j] / gas.molecular_weights[gas.species_index('FEC5O5')]
-        c_FE2O3= X_mod[gas.species_index('FE2O3(s)'), j] * density[j] / gas.molecular_weights[gas.species_index('FE2O3(s)')]
-        c_FEO2 = X_mod[gas.species_index('FEO2'), j] * density[j] / gas.molecular_weights[gas.species_index('FEO2')]
-        c_FEO = X_mod[gas.species_index('FEO'), j] * density[j] / gas.molecular_weights[gas.species_index('FEO')]
-        c_FEO2H2 = X_mod[gas.species_index('FEO2H2'), j] * density[j] / gas.molecular_weights[gas.species_index('FEO2H2')]
-        c_FE2OOOH = X_mod[gas.species_index('FE2OOOH'), j] * density[j] / gas.molecular_weights[gas.species_index('FE2OOOH')]
-        row = [c_O2, c_O, c_H2O, c_H2, c_H, c_OH, c_FEC5O5, c_FE2O3, c_FEO2, c_FEO, c_FEO2H2, c_FE2OOOH]
-        f_out.write(','.join(f"{val:.9e}" for val in row) + '\n') 
+    # for j in range(len(grid)):
+    #     c_O2 = X_mod[gas.species_index('O2'), j] * density[j] / gas.molecular_weights[gas.species_index('O2')] #Concentration given in kmol/m^3
+    #     c_O = X_mod[gas.species_index('O'), j] * density[j] / gas.molecular_weights[gas.species_index('O')]
+    #     c_H2O = X_mod[gas.species_index('H2O'), j] * density[j] / gas.molecular_weights[gas.species_index('H2O')]
+    #     c_H2 = X_mod[gas.species_index('H2'), j] * density[j] / gas.molecular_weights[gas.species_index('H2')]
+    #     c_H = X_mod[gas.species_index('H'), j] * density[j] / gas.molecular_weights[gas.species_index('H')]
+    #     c_OH = X_mod[gas.species_index('OH'), j] * density[j] / gas.molecular_weights[gas.species_index('OH')]
+    #     c_FEC5O5 = X_mod[gas.species_index('FEC5O5'), j] * density[j] / gas.molecular_weights[gas.species_index('FEC5O5')]
+    #     c_FE2O3= X_mod[gas.species_index('FE2O3(s)'), j] * density[j] / gas.molecular_weights[gas.species_index('FE2O3(s)')]
+    #     c_FEO2 = X_mod[gas.species_index('FEO2'), j] * density[j] / gas.molecular_weights[gas.species_index('FEO2')]
+    #     c_FEO = X_mod[gas.species_index('FEO'), j] * density[j] / gas.molecular_weights[gas.species_index('FEO')]
+    #     c_FEO2H2 = X_mod[gas.species_index('FEO2H2'), j] * density[j] / gas.molecular_weights[gas.species_index('FEO2H2')]
+    #     c_FE2OOOH = X_mod[gas.species_index('FE2OOOH'), j] * density[j] / gas.molecular_weights[gas.species_index('FE2OOOH')]
+    #     print(f.X[gas.species_index('H2'),10])
+    #     print(X_mod[gas.species_index('H2'),10])
+    #     print(f.X[gas.species_index('H'),10])
+    #     print(X_mod[gas.species_index('H'),10])
+    #     print(f.X[gas.species_index('OH'),10])
+    #     print(X_mod[gas.species_index('OH'),10])
+    #     print(f.X[gas.species_index('H2O'),10])
+    #     print(X_mod[gas.species_index('H2O'),10])
+    #     print("rho =", density[j])
+    #     print("MW =", gas.mean_molecular_weight)
+    #     print("H2 X =", X_mod[gas.species_index('H2'),j])
+    #     print("H2 conc formula =", c_H2)
+    #     print("H2 conc cantera =", gas.concentrations[gas.species_index('H2')])
+    #     row = [c_O2, c_O, c_H2O, c_H2, c_H, c_OH, c_FEC5O5, c_FE2O3, c_FEO2, c_FEO, c_FEO2H2, c_FE2OOOH]
+    #     f_out.write(','.join(f"{val:.9e}" for val in row) + '\n') 
 
 ###################### CANTERA PART END ########################################
