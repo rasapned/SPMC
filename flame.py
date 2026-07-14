@@ -179,6 +179,10 @@ loglevel = 0
 f.set_refine_criteria(ratio=3, slope=0.1, curve=0.2, prune=0.06)
 f.solve(loglevel, refine_grid=True)
 
+# chemestry rate
+print("reaction rates:", f.net_rates_of_progress)
+print(f.net_rates_of_progress.shape)
+
 X = f.X.copy()
 T = f.T
 P = f.P
@@ -242,16 +246,24 @@ with open(cantera_conc_file, 'w') as f_out:
     c_FEO = X_mod[gas.species_index('FEO'), :] * density / W_mix
     c_FEO2H2 = X_mod[gas.species_index('FEO2H2'), :] * density / W_mix
     c_FE2OOOH = X_mod[gas.species_index('FE2OOOH'), :] * density / W_mix
-    print("H2 conc formula =", c_H2[gas.species_index('H2')])
-    #print("H2 conc cantera =", gas.concentrations[gas.species_index('H2')])
-    print("H2 conc cantera =", gas.concentrations)
-    print(X_mod.shape)
-    print(gas.concentrations.shape)
-    print(gas.species_index('H2'))
+    print("H2 conc =", c_OH)
+    #print("All concentrations =", f.concentrations)
+    print("f.H2 = ", f.concentrations[gas.species_index('OH'), :])
+    #print("H2 conc formula =", c_H2[gas.species_index('H2')])
+    #print("H2 conc cantera =", f.concentrations[gas.species_index('H2')])
+    #print(X_mod.shape)
+    #print(f.concentrations.shape)
+    #print(gas.species_index('H2'))
     #print(f.X[gas.species_index('H2'),200])
     #print(X_mod[gas.species_index('H2'),200])
-    row = [c_O2, c_O, c_H2O, c_H2, c_H, c_OH, c_FEC5O5, c_FE2O3, c_FEO2, c_FEO, c_FEO2H2, c_FE2OOOH]
-    f_out.write(','.join(f"{val:.9e}" for val in row) + '\n') 
+    #row = [c_O2, c_O, c_H2O, c_H2, c_H, c_OH, c_FEC5O5, c_FE2O3, c_FEO2, c_FEO, c_FEO2H2, c_FE2OOOH]
+    #f_out.write(','.join(f"{val:.9e}" for val in row) + '\n') 
+    data = np.column_stack((c_O2,c_O,c_H2O,c_H2,c_H,c_OH,c_FEC5O5,c_FE2O3,c_FEO2,c_FEO,c_FEO2H2,c_FE2OOOH))
+
+    np.savetxt(f_out, data, delimiter=',',fmt='%.9e')
+
+    # calculate chemistry rates
+
 
     # for j in range(len(grid)):
     #     c_O2 = X_mod[gas.species_index('O2'), j] * density[j] / gas.molecular_weights[gas.species_index('O2')] #Concentration given in kmol/m^3

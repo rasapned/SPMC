@@ -10,6 +10,9 @@ from scipy.optimize import minimize
 from scipy.optimize import basinhopping
 from scipy.optimize import differential_evolution
 from matplotlib.ticker import MaxNLocator
+import os
+
+#### read the data from the Monte Carlo simulations and calculate the reaction constants for each species ####
 
 params = {'legend.fontsize': 16,
           'axes.labelsize': 18,
@@ -42,9 +45,10 @@ PI = 3.1415926
 R_g = 8.31446           # J/mol/K
 k_B = 1.380649 * 1e-23  # J/K
 T_ref = 298          # K
+#T_ref = 3000          # K
 
 # define which cases should be read and used for optimisation
-cases = ['L500'] #,'S500','R500']#,'XL500']
+cases = ['L500','S500','R500']#,'XL500']
 n_cases = len(cases)
 phicol = ['m','c','y']#,'sandybrown']
 
@@ -70,6 +74,7 @@ d_O   = d_O2/2
 d_H   = d_H2/2
 d_OH  = 0.97e-10
 
+#### User defined parameters ####
 # Include/Exclude temperature steric factor b
 b_switch = False
 mk_switch = False   
@@ -81,6 +86,8 @@ blockE_a = False
 
 # temperature sampling for the final reaction constant curve
 T_bf = np.arange(850,1900,5)
+
+############################################
 
 # initialise arrays that store MC read data for all cases (different lengths)
 Tp_glob, cov_OFe, k_Fe,k_O2,k_O,k_H2O,k_H2,k_H,k_OH = np.zeros((9,0),dtype = float)
@@ -99,23 +106,21 @@ aax5 = plt.subplot(gs2[1,1])
 aax6 = plt.subplot(gs2[2,0]) 
 aax7 = plt.subplot(gs2[2,1]) 
 
-############################################
-
 # read all the necessary data for each flame case and get the reaction constants
 for n, name in enumerate(cases):
     
     #### READ PART ####
 
-    mc_file = f"../../RESULTS/{name}_results/{name}-average.csv" # contains the average values of the Monte Carlo simulations (DFB, particle diameter, particle temperature, temperature before reaction)
-    mc_count_file = f"../../RESULTS/{name}_results/{name}-count.csv" # contains the collision counts for each species and the total number of collisions (for reaction constant calculation)
+    mc_file = f"../../RESULTS/L500_results/{name}-average.csv" # contains the average values of the Monte Carlo simulations (DFB, particle diameter, particle temperature, temperature before reaction)
+    mc_count_file = f"../../RESULTS/L500_results/{name}-count.csv" # contains the collision counts for each species and the total number of collisions (for reaction constant calculation)
 
     # Cantera 1D sim: read the grid, temperature, density and mole fractions of the gaseous iron containing species
     #sim1D_XFEC5O5, sim1D_XFE2O3, sim1D_XFEO2, sim1D_XFEO, sim1D_XFEOH, sim1D_XFEO2H2, sim1D_XFE2OOOH = np.genfromtxt(name+'-cantera.csv', delimiter=',', comments='#', skip_header=1, usecols=(17,36,10,7,8,9,34)).T
-    sim1D_XFEC5O5, sim1D_XFE2O3, sim1D_XFEO2, sim1D_XFEO, sim1D_XFEOH, sim1D_XFEO2H2, sim1D_XFE2OOOH = np.genfromtxt(f"../../RESULTS/{name}_results/{name}-cantera.csv", delimiter=',', comments='#', skip_header=1, usecols=(17,36,10,7,8,9,34)).T
-    #sim1D_z, sim1D_Tg, sim1D_rho = np.genfromtxt(name+'-cantera.csv', delimiter=',', comments='#',skip_header=1, usecols=(0,4,5)).T
-    sim1D_z, sim1D_Tg, sim1D_rho = np.genfromtxt(f"../../RESULTS/{name}_results/{name}-cantera.csv", delimiter=',', comments='#',skip_header=1, usecols=(0,4,5)).T
+    sim1D_XFEC5O5, sim1D_XFE2O3, sim1D_XFEO2, sim1D_XFEO, sim1D_XFEOH, sim1D_XFEO2H2, sim1D_XFE2OOOH = np.genfromtxt(f"../../RESULTS/L500_results/{name}-cantera.csv", delimiter=',', comments='#', skip_header=1, usecols=(17,36,10,7,8,9,34)).T
+    #sim1D_z, sim1D_Tg, sim1D_rho = np.genfromtxt(f"../../RESULTS/{name}_results/{name}-cantera.csv", delimiter=',', comments='#',skip_header=1, usecols=(0,4,5)).T
+    sim1D_z, sim1D_Tg, sim1D_rho = np.genfromtxt(f"../../RESULTS/L500_results/{name}-cantera.csv", delimiter=',', comments='#',skip_header=1, usecols=(0,4,5)).T
     # Cantera concentrations of species of interest
-    c_O2, c_O, c_H2O, c_H2, c_H, c_OH, c_FEC5O5, c_FE2O3, c_FEO2, c_FEO, c_FEO2H2,c_FE2OOOH = np.genfromtxt(f"../../RESULTS/{name}_results/{name}-ConcCant.csv", delimiter=',', comments='#', skip_header=1).T
+    c_O2, c_O, c_H2O, c_H2, c_H, c_OH, c_FEC5O5, c_FE2O3, c_FEO2, c_FEO, c_FEO2H2,c_FE2OOOH = np.genfromtxt(f"../../RESULTS/L500_results/{name}-ConcCant.csv", delimiter=',', comments='#', skip_header=1).T
 
     # MC-Results
     DFB, Tp, Dp, Tbf = np.genfromtxt(mc_file, delimiter=',', comments='#', usecols=(1,2,3,6)).T # DFB - distance from burner, Tp - particle temperature, Dp - particle diameter, Tbf - temperature before reaction (after thermalisation)
@@ -343,7 +348,6 @@ solver = 'Mixed'
 solvArr = ['L-BFGS-B', 'L-BFGS-B',  'L-BFGS-B', 'L-BFGS-B', 'L-BFGS-B',  'L-BFGS-B', 'L-BFGS-B']
 #solvArr = ['SLSQP', 'SLSQP', 'SLSQP', 'SLSQP', 'SLSQP',  'SLSQP', 'SLSQP']
 
-
 # initialise the parameters output array
 opt_Spec = np.zeros((len(specArr),6))
 # store minimised loss functions (for comparison between the methods)
@@ -370,7 +374,8 @@ if not Ek_switch:
 else:
     Ek_bound = (None,None)
 
-csv_file = open("rates_calc.csv", 'w', newline='')
+os.makedirs("./ArrheniusRates", exist_ok=True)
+csv_file = open(f"./ArrheniusRates/rates_calc_test12.csv", 'w', newline='')
 csv_writer = csv.writer(csv_file)
 
 # original code
@@ -380,9 +385,8 @@ for s, spec in enumerate(constArr):
     else:
         Ea_bound = (None,None)
     result = minimize(loss, init_guess, bounds = ((None,None),b_bound,Ea_bound,alpha_bound,mk_bound,Ek_bound), method=solvArr[s], args = (spec,method[s]))
-    #opt_Spec[s,:] = result.x
-    opt_Spec[s,0] = opt_Spec[s,0] * N_A
-    csv_writer.writerow(opt_Spec[s])
+    opt_Spec[s,:] = result.x
+    opt_Spec[s,0] *= N_A
     storeFun[s] = result.fun
     for i in range(n_cases):
         checkFun = arrhPlot(1/T_bf, opt_Spec[s,0], opt_Spec[s,1], opt_Spec[s,2])
@@ -393,80 +397,7 @@ for s, spec in enumerate(constArr):
     k_fit = arrhSurf(Tp_glob, cov_OFe, *result.x)
     q_logrmse = log_rmse(spec, k_fit)
     print(f'{specArr[s]} log-RMSE = {q_logrmse:.4f}')
+    csv_writer.writerow(np.append(opt_Spec[s], q_logrmse))
 
-fig2.savefig('ArrhPlots_test.png',dpi=600)
-
-# for s, spec in enumerate(constArr):
-#     if blockE_a:
-#         Ea_bound = (actEner[s], actEner[s])
-#     else:
-#         Ea_bound = (None,None)
-#     result = minimize(loss, init_guess,
-#                    bounds=((None,None), b_bound, Ea_bound, alpha_bound, mk_bound, Ek_bound), method=solvArr[s], args=(spec, method[s]))
-#     opt_Spec[s,:] = result.x.copy()
-#     opt_Spec[s,0] *= N_A
-#     csv_writer.writerow(opt_Spec[s])
-#     storeFun[s] = result.fun
-#     for i in range(n_cases):
-#         checkFun = arrhPlot(1/T_bf, opt_Spec[s,0], opt_Spec[s,1], opt_Spec[s,2])
-#         axArr[s].plot(np.flip(1000/T_bf), np.flip(checkFun ), '--', linewidth = 0.7, color = 'k')
-#     print(f'Species {specArr[s]} : {opt_Spec[s]}')
-
-#     # Fit evaluation
-#     k_fit = arrhSurf(Tp_glob, cov_OFe, *result.x)
-#     q_logrmse = log_rmse(spec, k_fit)
-#     print(f'{specArr[s]} log-RMSE = {q_logrmse:.4f}')
-
-# fig2.savefig('ArrhPlots_test.png',dpi=600)
-
-# # test method_log
-# for s, spec in enumerate(constArr):
-#     if blockE_a:
-#         Ea_bound = (actEner[s], actEner[s])
-#     else:
-#         Ea_bound = (None,None)
-#     result = minimize(loss, init_guess,
-#                    bounds=((None,None), b_bound, Ea_bound, alpha_bound, mk_bound, Ek_bound), method=solvArr[s], args=(spec, method_log[s]))
-#     opt_Spec[s,:] = result.x.copy()
-#     opt_Spec[s,0] *= N_A
-#     csv_writer.writerow(opt_Spec[s])
-#     storeFun[s] = result.fun
-#     for i in range(n_cases):
-#         k_plot = arrhSurf(T_bf, cov_OFe, *result.x)
-#         checkFun = np.log(k_plot)
-#         axArr[s].plot(np.flip(1000/T_bf), np.flip(checkFun ), '--', linewidth = 0.7, color = 'k')
-#     print(f'Species {specArr[s]} : {opt_Spec[s]}')
-
-#     # Fit evaluation
-#     k_fit = arrhSurf(Tp_glob, cov_OFe, *result.x)
-#     k_true = spec
-#     q_logrmse = log_rmse(k_true, k_fit)
-#     print(f'{specArr[s]} log-RMSE = {q_logrmse:.4f}')
-
-# fig2.savefig('ArrhPlots_test_log.png',dpi=600)
-
-# # test method_lin
-# for s, spec in enumerate(constArr):
-#     if blockE_a:
-#         Ea_bound = (actEner[s], actEner[s])
-#     else:
-#         Ea_bound = (None,None)
-#     result = minimize(loss, init_guess, bounds=((None,None), b_bound, Ea_bound, alpha_bound, mk_bound, Ek_bound), method=solvArr[s], args=(constArr[s], method[s]))
-#     opt_Spec[s,:] = result.x.copy()
-#     opt_Spec[s,0] *= N_A
-#     csv_writer.writerow(opt_Spec[s])
-#     storeFun[s] = result.fun
-#     for i in range(n_cases):
-#         checkFun = arrhSurf(T_bf, np.interp(T_bf, Tp_glob, cov_OFe), *result.x)
-#         #checkFun = arrhPlot(1/T_bf, opt_Spec[s,0], opt_Spec[s,1], opt_Spec[s,2])
-#         x = 1000 / T_bf
-#         idx = np.argsort(x)
-#         axArr[s].plot(x[idx], checkFun[idx], '--', linewidth=0.7, color='k')
-#     print(f'Species {specArr[s]} : {opt_Spec[s]}')
-
-#     # Fit evaluation
-#     k_fit = arrhSurf(Tp_glob, cov_OFe, *result.x)
-#     q_logrmse = log_rmse(spec, k_fit)
-#     print(f'{specArr[s]} log-RMSE = {q_logrmse:.4f}')
-
-# fig2.savefig('ArrhPlots_test_lin.png',dpi=600)
+os.makedirs("./ArrheniusPlots", exist_ok=True)
+fig2.savefig(f"./ArrheniusPlots/ArrhPlots_test12.png", dpi=600)
