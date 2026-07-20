@@ -31,4 +31,6 @@ rates_calc.csv = [A, b, Ea, alpha_k, m_k, E_k, logRMSE]
 | 2000 K | 1.2 | 2.2 | 3.2 | 4.2 | 5.2 | 6.2 | 7.2 | 8.2 | 9.2 | 10.2 | 11.2 | 12.2 |
 | 3000 K | 1.3 | 2.3 | 3.3 | 4.3 | 5.3 | 6.3 | 7.3 | 8.3 | 9.3 | 10.3 | 11.3 | 12.3 |
 
-The Größe logRMSE in rates_calc.csv gibt auskunft über die Güte des Fittings, je kleiner der Wert desto besser. Für jeden Test wird mittels log-RMSE.py diese Größe ausgewertet und mit anderen Bedingungen ausgetestet, schlißlich werden die besten Bedingungen für das Fitting ermittelt und in min_values_with_test.csv gespeichert.
+The logRMSE value in rates_calc.csv indicates the quality of the fitting; the smaller the value, the better the fit. For each test, this metric is evaluated using log-RMSE.py under different conditions. The optimal fitting conditions are then identified and stored in min_values_with_test.csv.
+
+Conclusion: The results in min_values_with_test.csv were reviewed, and it was found that the corresponding fits were not visually satisfactory. One of the main issues is the activation energy, which is controlled by blockE_a. In several fits, the activation energy falls below 1, which is not a physically meaningful value. Through manual evaluation, the best fit was identified as Test 12.

@@ -375,7 +375,7 @@ else:
     Ek_bound = (None,None)
 
 os.makedirs("./ArrheniusRates", exist_ok=True)
-csv_file = open(f"./ArrheniusRates/rates_calc_test12.csv", 'w', newline='')
+csv_file = open(f"./ArrheniusRates/rates_calc_test15.csv", 'w', newline='')
 csv_writer = csv.writer(csv_file)
 
 # original code
@@ -384,7 +384,7 @@ for s, spec in enumerate(constArr):
         Ea_bound = (actEner[s], actEner[s])
     else:
         Ea_bound = (None,None)
-    result = minimize(loss, init_guess, bounds = ((None,None),b_bound,Ea_bound,alpha_bound,mk_bound,Ek_bound), method=solvArr[s], args = (spec,method[s]))
+    result = minimize(loss, init_guess, bounds = ((None,None),b_bound,Ea_bound,alpha_bound,mk_bound,Ek_bound), method=solvArr[s], args = (spec,method_log[s]))
     opt_Spec[s,:] = result.x
     opt_Spec[s,0] *= N_A
     storeFun[s] = result.fun
@@ -400,4 +400,4 @@ for s, spec in enumerate(constArr):
     csv_writer.writerow(np.append(opt_Spec[s], q_logrmse))
 
 os.makedirs("./ArrheniusPlots", exist_ok=True)
-fig2.savefig(f"./ArrheniusPlots/ArrhPlots_test12.png", dpi=600)
+fig2.savefig(f"./ArrheniusPlots/ArrhPlots_test15.png", dpi=600)
