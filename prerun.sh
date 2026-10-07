@@ -4,7 +4,7 @@ set -euo pipefail
 
 # Step 1: Find *.case files
 shopt -s nullglob
-case_files=( *.case )
+case_files=(*.case )
 shopt -u nullglob
 
 # Step 2: Check how many were found
@@ -45,9 +45,9 @@ else
 fi
 
 # Step 5: Run Python scripts: solve Cantera flame and estimate number of seeds
-python flame.py $case_file
+python SRC/scripts/flame.py $case_file
 echo "Flame results file saved!"
-python SRC/nuclest.py "$case_file"
+python SRC/scripts/nuclest.py "$case_file"
 echo "Number of seeds estimated and saved to file!"
 
 # Step 6: Copy the case file, T-of-x and so on

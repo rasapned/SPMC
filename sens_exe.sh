@@ -70,7 +70,7 @@ do
 
     shopt -s nullglob
     # Remove RESULTS > case-name_results
-    rm "RESULTS/$results_dir"/*SPMC-[0-9].csv "RESULTS/$results_dir"/*SPMC-[1-3][0-9].csv "RESULTS/$results_dir"/*average.csv "RESULTS/$results_dir"/*count.csv
+    rm "RESULTS/$results_dir"/*SPMC-[0-9].csv "../RESULTS/$results_dir"/*SPMC-[1-3][0-9].csv "../RESULTS/$results_dir"/*average.csv "../RESULTS/$results_dir"/*count.csv
   
     # Remove RESULTS > case-name_res_part-params > res_part-params_*
     rm "RESULTS/${case_name}_results_sens/mech_${j}"/*SPMC-[0-9].csv "RESULTS/${case_name}_results_sens/mech_${j}"/*SPMC-[1-3][0-9].csv 

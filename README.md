@@ -19,15 +19,26 @@ The code simulates the growth of single iron oxide particles through Monte Carlo
 ## Files
 
 - `SRC/`: Source code directory
-  - `nuclest.py`: Nucleation estimation script
-  - `SPMC-0D-main-200326.py`: Main SPMC 0D code
-  - `runningAver.py`: Running average calculations
-- `prerun.sh`: Runs the flame and nucleation estimation scripts
+  - `scripts/`: python scripts
+    - `nuclest.py`: Nucleation estimation script
+    - `SPMC-0D-main-200326.py`: Main SPMC 0D code
+    - `runningAver.py`: Running average calculations
+    - `arrhenius.py`: Determination of the Arrhenius parameters by graphical fitting to the data from the Monte Carlo simulations and Cantera
+    - `flame.py`: Cantera flame simulation file 
+    - `plot_exe.py`: plot of SPMC execution data
+    - `plot-sim_csv.py`: plot of simulation data only
+    - `plot_csv.py`: plot of old CSV data
+    - `sense-gen-csv.py`: processing file ???
+    - `sampleTa_writefile.py`: Generates YAML files with randomly sampled T_a values.
+    - `Log-RMSE.zip`: contains script, README.md and data for identify best plotting of ArrheniusPlots
+- `YAML/`: yaml files
+  - `Iron_elte_Syngas-newTransp.yaml`: Chemistry mechanism
+  - `part_params.yaml`: Particle and Monte-Carlo parameters
 - `exe.sh`: SPMC execution (parallel)
+- `prerun.sh`: Runs the flame and nucleation estimation scripts
+- `sense_exe.sh`: SPMC execution for sensitivity analysis
+- `L500-case`: Case file for main flame parameters
 - `L500_OHx25%.case`: Case file for main flame parameters (here: lean H2/O2/Ar, 500 ppm IPC impinging flame)
-- `part_params.yaml`: Particle and Monte-Carlo parameters
-- `flame.py`: Cantera flame simulation file 
-- `Iron_elte_Syngas-newTransp.yaml`: Chemistry mechanism
 - `T_of_x-L500_OHx25%.csv`: Temperature profile data from OF 2D sim., fed to cantera (optional, depending of the cantera flame file)
 
 ## Installation

@@ -109,7 +109,6 @@ theta = sigma * s1 / k_B / T
 g_star = (2.0*theta/3.0/np.log(Sat))**3
 # Critical diameter
 d_star = 2.0 * np.cbrt(g_star * v1 * (3.0/(4.0*np.pi)))
-#d_star_old = (g_star * v1 * 3.0/4.0 / PI) ** (1.0/3.0) * 2
 
 # Saturation ratio - alternative: correction of the saturation equilibrium concentration of monomers:
 #   - both surface tension (sigma) and saturation concentration (n_sat) can depend on the size of the critical cluster
@@ -221,4 +220,4 @@ dx1.plot(x[:j+1]*1e3, Nk_star_cum, '-', color=colour, linewidth=6)
 fig.tight_layout()
 plt.show()
 plt.close()
-fig.savefig(f'RESULTS/{case}_results/nuclest_{case}.png')
+fig.savefig(f'Plots/{case}_results/nuclest_{case}.png')

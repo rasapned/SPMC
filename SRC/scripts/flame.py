@@ -1,3 +1,4 @@
+# how to run: python3 flame.py case_file_name.case; example: python3 flame.py L500.case
 #!/usr/bin/python3
 import sys
 from pathlib import Path
@@ -71,7 +72,7 @@ print(f'case name: {case_base_name}')
 
 SPMC_save_file = case_base_name+'-SPMC'
 cantera_save_file = "RESULTS/" + case_base_name + "_results/" +  case_base_name+'-cantera.csv'
-CFD_T_of_x_file = 'T_of_x-'+case_base_name+'.csv'
+CFD_T_of_x_file = '../../T_of_x-'+case_base_name+'.csv'
 cantera_conc_file = "RESULTS/" + case_base_name + "_results/" + case_base_name+'-ConcCant.csv'
 
 
@@ -95,8 +96,8 @@ import cantera as ct
 ct.suppress_thermo_warnings()
 
 # Read the input case file
+#case_file_name = f'{case_file_name}'
 cfg = read_case_file(case_file_name)
-
 
 VSdot_H2 = cfg["VSdot_H2"]
 VSdot_O2 = cfg["VSdot_O2"]
@@ -247,51 +248,8 @@ with open(cantera_conc_file, 'w') as f_out:
     c_FEO2H2 = X_mod[gas.species_index('FEO2H2'), :] * density / W_mix
     c_FE2OOOH = X_mod[gas.species_index('FE2OOOH'), :] * density / W_mix
     print("H2 conc =", c_OH)
-    #print("All concentrations =", f.concentrations)
     print("f.H2 = ", f.concentrations[gas.species_index('OH'), :])
-    #print("H2 conc formula =", c_H2[gas.species_index('H2')])
-    #print("H2 conc cantera =", f.concentrations[gas.species_index('H2')])
-    #print(X_mod.shape)
-    #print(f.concentrations.shape)
-    #print(gas.species_index('H2'))
-    #print(f.X[gas.species_index('H2'),200])
-    #print(X_mod[gas.species_index('H2'),200])
-    #row = [c_O2, c_O, c_H2O, c_H2, c_H, c_OH, c_FEC5O5, c_FE2O3, c_FEO2, c_FEO, c_FEO2H2, c_FE2OOOH]
-    #f_out.write(','.join(f"{val:.9e}" for val in row) + '\n') 
     data = np.column_stack((c_O2,c_O,c_H2O,c_H2,c_H,c_OH,c_FEC5O5,c_FE2O3,c_FEO2,c_FEO,c_FEO2H2,c_FE2OOOH))
 
     np.savetxt(f_out, data, delimiter=',',fmt='%.9e')
-
-    # calculate chemistry rates
-
-
-    # for j in range(len(grid)):
-    #     c_O2 = X_mod[gas.species_index('O2'), j] * density[j] / gas.molecular_weights[gas.species_index('O2')] #Concentration given in kmol/m^3
-    #     c_O = X_mod[gas.species_index('O'), j] * density[j] / gas.molecular_weights[gas.species_index('O')]
-    #     c_H2O = X_mod[gas.species_index('H2O'), j] * density[j] / gas.molecular_weights[gas.species_index('H2O')]
-    #     c_H2 = X_mod[gas.species_index('H2'), j] * density[j] / gas.molecular_weights[gas.species_index('H2')]
-    #     c_H = X_mod[gas.species_index('H'), j] * density[j] / gas.molecular_weights[gas.species_index('H')]
-    #     c_OH = X_mod[gas.species_index('OH'), j] * density[j] / gas.molecular_weights[gas.species_index('OH')]
-    #     c_FEC5O5 = X_mod[gas.species_index('FEC5O5'), j] * density[j] / gas.molecular_weights[gas.species_index('FEC5O5')]
-    #     c_FE2O3= X_mod[gas.species_index('FE2O3(s)'), j] * density[j] / gas.molecular_weights[gas.species_index('FE2O3(s)')]
-    #     c_FEO2 = X_mod[gas.species_index('FEO2'), j] * density[j] / gas.molecular_weights[gas.species_index('FEO2')]
-    #     c_FEO = X_mod[gas.species_index('FEO'), j] * density[j] / gas.molecular_weights[gas.species_index('FEO')]
-    #     c_FEO2H2 = X_mod[gas.species_index('FEO2H2'), j] * density[j] / gas.molecular_weights[gas.species_index('FEO2H2')]
-    #     c_FE2OOOH = X_mod[gas.species_index('FE2OOOH'), j] * density[j] / gas.molecular_weights[gas.species_index('FE2OOOH')]
-    #     print(f.X[gas.species_index('H2'),10])
-    #     print(X_mod[gas.species_index('H2'),10])
-    #     print(f.X[gas.species_index('H'),10])
-    #     print(X_mod[gas.species_index('H'),10])
-    #     print(f.X[gas.species_index('OH'),10])
-    #     print(X_mod[gas.species_index('OH'),10])
-    #     print(f.X[gas.species_index('H2O'),10])
-    #     print(X_mod[gas.species_index('H2O'),10])
-    #     print("rho =", density[j])
-    #     print("MW =", gas.mean_molecular_weight)
-    #     print("H2 X =", X_mod[gas.species_index('H2'),j])
-    #     print("H2 conc formula =", c_H2)
-    #     print("H2 conc cantera =", gas.concentrations[gas.species_index('H2')])
-    #     row = [c_O2, c_O, c_H2O, c_H2, c_H, c_OH, c_FEC5O5, c_FE2O3, c_FEO2, c_FEO, c_FEO2H2, c_FE2OOOH]
-    #     f_out.write(','.join(f"{val:.9e}" for val in row) + '\n') 
-
 ###################### CANTERA PART END ########################################

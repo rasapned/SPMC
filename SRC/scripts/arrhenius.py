@@ -14,6 +14,7 @@ import os
 
 #### read the data from the Monte Carlo simulations and calculate the reaction constants for each species ####
 
+# setting the parameters for the plots
 params = {'legend.fontsize': 16,
           'axes.labelsize': 18,
           'axes.titlesize': 17,
@@ -35,7 +36,7 @@ params = {'legend.fontsize': 16,
          }
 
 fig2 = plt.figure(figsize=[4.2,6.0])
-gs2 = gridspec.GridSpec(3, 2)
+gs2 = gridspec.GridSpec(3, 2) # create a grid of 3 rows and 2 columns for subplots
 gs2.update(wspace=0.08, hspace=0.3) # set the spacing between axes. 
 plt.subplots_adjust(left=0.15, right=0.98, wspace=0.1, hspace=0.25, top=0.9, bottom=0.1)
 
@@ -115,10 +116,9 @@ for n, name in enumerate(cases):
     mc_count_file = f"../../RESULTS/L500_results/{name}-count.csv" # contains the collision counts for each species and the total number of collisions (for reaction constant calculation)
 
     # Cantera 1D sim: read the grid, temperature, density and mole fractions of the gaseous iron containing species
-    #sim1D_XFEC5O5, sim1D_XFE2O3, sim1D_XFEO2, sim1D_XFEO, sim1D_XFEOH, sim1D_XFEO2H2, sim1D_XFE2OOOH = np.genfromtxt(name+'-cantera.csv', delimiter=',', comments='#', skip_header=1, usecols=(17,36,10,7,8,9,34)).T
     sim1D_XFEC5O5, sim1D_XFE2O3, sim1D_XFEO2, sim1D_XFEO, sim1D_XFEOH, sim1D_XFEO2H2, sim1D_XFE2OOOH = np.genfromtxt(f"../../RESULTS/L500_results/{name}-cantera.csv", delimiter=',', comments='#', skip_header=1, usecols=(17,36,10,7,8,9,34)).T
-    #sim1D_z, sim1D_Tg, sim1D_rho = np.genfromtxt(f"../../RESULTS/{name}_results/{name}-cantera.csv", delimiter=',', comments='#',skip_header=1, usecols=(0,4,5)).T
     sim1D_z, sim1D_Tg, sim1D_rho = np.genfromtxt(f"../../RESULTS/L500_results/{name}-cantera.csv", delimiter=',', comments='#',skip_header=1, usecols=(0,4,5)).T
+    
     # Cantera concentrations of species of interest
     c_O2, c_O, c_H2O, c_H2, c_H, c_OH, c_FEC5O5, c_FE2O3, c_FEO2, c_FEO, c_FEO2H2,c_FE2OOOH = np.genfromtxt(f"../../RESULTS/L500_results/{name}-ConcCant.csv", delimiter=',', comments='#', skip_header=1).T
 
@@ -131,7 +131,7 @@ for n, name in enumerate(cases):
     #### REACTION CONSTANTS CALCULATION PART ####
 
     # get particle surface area, coverage (O/Fe), particle and gas temperature at all C_Z (collision data grid)
-    p_diam = np.interp(C_Z, DFB, Dp) #Unit of Dp is m, so p_diam is in m
+    p_diam = np.interp(C_Z, DFB, Dp)            #Unit of Dp is m, so p_diam is in m
     p_Temp = np.interp(C_Z, DFB, Tbf)           # Tbf - temperature before the reaction, but after thermalisation
     g_Temp = np.interp(C_Z, sim1D_z, sim1D_Tg)
     
@@ -299,17 +299,6 @@ def arrhPlot(Tp_inv, A, b, E_a):
     arrhPlotPoint = np.log(A) - b * (np.log(Tp_inv) - np.log(1/T_ref)) - E_a  / R_g * Tp_inv 
     return arrhPlotPoint
 
-# loss function to be minimised (square difference between arrh. curve and the actual datapoint)
-# def loss(para,k_spec, method):
-#     if method == 'lin':
-#         diff = k_spec - arrhSurf(Tp_glob, cov_OFe, para[0], para[1], para[2], para[3], para[4], para[5])
-#     elif method == 'log': 
-#         k_fit = arrhSurf(Tp_glob, cov_OFe, para[0], para[1], para[2], para[3], para[4], para[5])
-#         eps = 1e-300
-#         k_spec = np.maximum(k_spec, eps) ###### von mir eingefügt, damit log nicht negativ wird
-#         diff = np.log(np.maximum(k_spec, eps)) - np.log(np.maximum(k_fit, eps))
-#     return np.sum(diff**2)
-
 def loss(para, k_spec, method):
     k_fit = arrhSurf(Tp_glob, cov_OFe, para[0], para[1], para[2], para[3], para[4], para[5])
     eps = 1e-300
@@ -355,7 +344,6 @@ storeFun = np.zeros(len(specArr))
 
 # Perform optimisation with scipy.minimize for each species
 init_guess =  np.ones((6,))
-#init_guess =  np.array([1e10,1e10,1e10,1e10,1e10,1e10])
 
 if not b_switch:
     b_bound = (0.0,0.0)
@@ -374,8 +362,8 @@ if not Ek_switch:
 else:
     Ek_bound = (None,None)
 
-os.makedirs("./ArrheniusRates", exist_ok=True)
-csv_file = open(f"./ArrheniusRates/rates_calc_test15.csv", 'w', newline='')
+os.makedirs("../../Data/ArrheniusRates", exist_ok=True)
+csv_file = open(f"../../Data/ArrheniusRates/rates_calc_test15.csv", 'w', newline='')
 csv_writer = csv.writer(csv_file)
 
 # original code
@@ -399,5 +387,5 @@ for s, spec in enumerate(constArr):
     print(f'{specArr[s]} log-RMSE = {q_logrmse:.4f}')
     csv_writer.writerow(np.append(opt_Spec[s], q_logrmse))
 
-os.makedirs("./ArrheniusPlots", exist_ok=True)
-fig2.savefig(f"./ArrheniusPlots/ArrhPlots_test15.png", dpi=600)
+os.makedirs("../../Plots/ArrheniusPlots", exist_ok=True)
+fig2.savefig(f"../../Plots/ArrheniusPlots/ArrhPlots_test15.png", dpi=600)

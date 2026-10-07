@@ -118,8 +118,7 @@ all_x=[]
 all_curves=[]
 all_T_curves=[]
 
-stats_file = f"../../RESULTS/{case}_results_sens/{case}-compiled_curves.csv"
-    
+stats_file = f"../../RESULTS/{case}_results_sens/{case}-compiled_curves.csv"  #create a path to the statistics file, which contains the mean, std, median, and quantiles of the simulation data
 data = np.genfromtxt(stats_file, delimiter=",", names=True)
 x_common = data["x_m"]
 
@@ -139,8 +138,9 @@ T_q95    = data["T_q95"]
 
 x_end_mean  = data["x_end_mean_m"][0]
 x_end_std   = data["x_end_std_m"][0]
+#-> Load statistics from (case)-combined-curves.csv
 
-print(f"Loaded statistics from {stats_file}")
+print(f"Loaded statistics from {stats_file}") # print a message indicating that the statistics have been loaded from the specified file
 
 norm = np.nanmax(V_mean)/np.nanmax(V_exp)
 V_exp *= norm
