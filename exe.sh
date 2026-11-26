@@ -6,7 +6,7 @@ set -euo pipefail
 ITERATIONS=1
 
 # Path to the main file
-PYTHON_SCRIPT="SRC/SPMC-0D-main-200326.py"
+PYTHON_SCRIPT="SRC/scripts/SPMC-0D-main-200326.py"
 
 ########################################
 # Step 1: Find *.case files
@@ -80,4 +80,4 @@ fi
 ########################################
 # Step 7: Averaging the results and statistics
 ########################################
-python SRC/runningAver.py $case_file $ITERATIONS
+python SRC/scripts/runningAver.py $case_file $ITERATIONS

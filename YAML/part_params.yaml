@@ -13,7 +13,7 @@ particle:
     rho_fe: 7800.0      # Fe density (kg/m^3)
     rho_fe2o3: 5400.0   # Fe2O3 density (linear interpolation of particle density vs. oxidation level) (kg/m^3)
     pST_max: 1.5        # maximum O/Fe ratio (max. [p]article [ST]oichiometry)
-    C_p: 400.0          # Specific heat capacity of the particle (kJ/mol)
+    C_p: 400.0          # Specific heat capacity of the particle (J/(kg K))
     epsilon_p: 4.0e-8   # Particle emissivity
 
 # Nucleation gas reservoir properties
@@ -43,10 +43,8 @@ nucleation:
 
 # Fe evaporation data
 evaporation:
-  H_evap: -550000.0     # heat change due to evaporation (J/mol)
-  A_evap: 4.9e5         # Arrh. fit preexponential factor 
-  T_Aevap: 19500.0      # Arrh. fit activation temperature
-  relax: 0.1            # Evaporation relaxation factor 
+  alpha: 1.0            # evaporation coefficient (Hertz-Knudsen, 1 = every surface molecule with enough energy leaves)
+  d_min_kelvin: 1.0e-9  # m, Kelvin factor evaluated at max(d_p, d_min) (capillarity approx. invalid below ~1 nm)
 
 # Collisions (elastic and inelastic)
 collisions:

@@ -65,7 +65,7 @@ gas = ct.Solution(rxmech)
 ################### READ PARTICLE PROPERTIES ##################################
 
 # Open input file
-with open(f"../part_params.yaml", 'r') as f:
+with open(f"YAML/part_params.yaml", 'r') as f:
     conf = yaml.safe_load(f)
 
 # Particle parameters
@@ -86,11 +86,26 @@ epsilon_p   = float(conf['particle']['material']['epsilon_p']) # particle emissi
 nucl_mode   = str(conf['nucleation']['mode'])
 # Remaining variables read further in the code
 
-# Evaporation parameters
-H_evap     = float(conf['evaporation']['H_evap']) / N_A        # thermal dissociation of Fe and O expressed as an Arrhenius fit to literature values
-A_evap     = float(conf['evaporation']['A_evap'])              # Arrhenius fit preexponential factor
-T_Aevap    = float(conf['evaporation']['T_Aevap'])             # Arrhenius fit activation temperature
-Evap_relax = float(conf['evaporation']['relax'])               # evaporation relaxation factor
+# Evaporation parameters (Hertz-Knudsen + Kelvin; p_sat and dH_vap from Cantera thermo of the mechanism)
+alpha_ev = float(conf['evaporation']['alpha'])                 # evaporation coefficient (-)
+d_min_K  = float(conf['evaporation']['d_min_kelvin'])          # min. diameter for Kelvin factor (m)
+sp_all   = {sp.name: sp for sp in ct.Species.list_from_file(rxmech)}
+#           gas species     condensed species  sigma0  dsig/dT   T_ref   rho
+ev_spec  = [(sp_all['FE'],  sp_all['FE(L)'],   1.92,  -3.97e-4, 1811.0, 7000.0),   # Fe(l)  -> Fe(g)
+            (sp_all['FEO'], sp_all['FEO(L)'],  0.585,  0.0,     1650.0, 4600.0)]   # FeO(l) -> FeO(g)
+m_ev     = [gas.molecular_weights[gas.species_index(n)]*1e-3/N_A for n in ('FE', 'FEO')]  # molecule mass (kg)
+
+def evap_rates(T, R, pST):
+    ''' gross evaporation rates (1/s) of Fe and FeO; condensation is handled by the collisions '''
+    T = min(max(T, 1000.0), 5000.0)                    # validity range of the NASA fits
+    x = min(pST, 1.0)                                  # surface fraction of FeO (0: pure Fe, 1: FeO)
+    r = []
+    for a, (g, c, s0, ds, Tr, rho), m in zip((1.0-x, x), ev_spec, m_ev):
+        dG   = (g.thermo.h(T)-T*g.thermo.s(T)) - (c.thermo.h(T)-T*c.thermo.s(T))   # J/kmol, free energy change of the phase transition
+        psat = 101325.0 * mt.exp(-dG / (R_m*1e3*T))                                # saturation pressure (Pa)
+        K    = mt.exp(4.0*(s0+ds*(T-Tr))*(m/rho) / (max(2.0*R, d_min_K)*k_B*T))   # Kelvin factor
+        r.append(a * alpha_ev * psat*K / mt.sqrt(2.0*PI*m*k_B*T) * 4.0*PI*R**2)   # Hertz-Knudsen * surface = evaporation rate (1/s)
+    return r
 
 # Collision parameters and definitions
 class proto_SOI:        # Define the collision/reaction class
@@ -498,27 +513,28 @@ while (z<z_max):
     #''''''''''''''''''''''''''''''''''''
     # Evaporation process (if particle is hot enough and has enough material to evaporate)
     #''''''''''''''''''''''''''''''''''''
-    if (ni_O_pMC > 5 and ni_FE_pMC > 5):
+    if ni_FE_pMC > 8:
         T_pMC = E_pMC / M_pMC / C_pMC
-        ndot_FEO = A_evap * mt.exp(-T_Aevap/T_pMC) * N_A * 4.0*PI*R_pMC**2.0 * Evap_relax
-        n_FEO = mt.trunc(ndot_FEO * dt)
-        # loosing Fe and O one by one until particle is too cold
-        while (n_FEO>0 and ni_O_pMC > 8 and ni_FE_pMC > 8):
-            print(E_pMC/M_pMC/C_pMC, ndot_FEO * dt, n_FEO)
-            ni_O_pMC  -= 1   # loosing FE+O atoms
-            ni_FE_pMC -= 1
-            star = 'ev'
-            M_pMC  = ni_FE_pMC * M_g[metal_idx] + ni_O_pMC * M_g[oxi_idx] # compute new mass of particle
-            pST_pMC = ni_O_pMC / ni_FE_pMC
-            rho_pMC = rho_p_fe - (rho_p_fe - rho_p_fe2o3)*pST_pMC/pST_max
-            R_pMC = (3.0*(M_pMC/rho_pMC)/4.0/PI)**(1.0/3.0)
-            E_pMC += H_evap        # loosing a lot of heat
-            T_pMC = max(T_g, E_pMC/M_pMC/C_pMC)
-            outstr = f"{t:1.8e}, {z:1.8e}, {T_g:6.1f}, {T_pMC:6.1f}, {R_pMC*2:1.5e}, {M_pMC:1.5e}, {pST_pMC:4.3f}, {n_ine:6d}, {n_ell:6d}, {n_coll:6d}, {ni_FE_pMC:5d}, {ni_O_pMC:5d}, {SOI[s].name:3s}, {star:3s}, {Tbefore_pMC:6.1f}"
-            print(outstr)
-            MC_file.write(outstr+'\n')
-            ndot_FEO = A_evap * mt.exp(-T_Aevap/T_pMC) * N_A * 4.0*PI* R_pMC**2.0 * Evap_relax
-            n_FEO = mt.trunc(ndot_FEO * dt)
+        r_ev  = evap_rates(T_pMC, R_pMC, ni_O_pMC/ni_FE_pMC)              # [r_Fe, r_FeO] in 1/s
+        if random() < 1.0 - mt.exp(-sum(r_ev)*dt):                        # Poisson: P(>=1 evaporation within dt)
+            k = 0 if random() < r_ev[0]/sum(r_ev) else 1                  # which species: 0 = Fe, 1 = FeO
+            g, c = ev_spec[k][:2]
+            dH = (g.thermo.h(T_pMC) - c.thermo.h(T_pMC)) / 1e3 / N_A       # evaporation enthalpy per molecule (J, >0)
+            dH += m_ev[k] * C_pMC * T_pMC                                 # + sensible energy carried away by the leaving molecule
+            T_ev0 = T_pMC                                                 # particle temperature just before evaporation (output)
+            if E_pMC > dH:                                                # particle must have enough energy
+                ni_FE_pMC -= 1
+                ni_O_pMC  -= k                                            # FeO also removes one O atom
+                star = 'ev'
+                M_pMC   = ni_FE_pMC * M_g[metal_idx] + ni_O_pMC * M_g[oxi_idx]
+                pST_pMC = ni_O_pMC / ni_FE_pMC
+                rho_pMC = rho_p_fe - (rho_p_fe - rho_p_fe2o3)*pST_pMC/pST_max
+                R_pMC   = (3.0*(M_pMC/rho_pMC)/4.0/PI)**(1.0/3.0)
+                E_pMC  -= dH                                              # evaporative cooling (no T clamp)
+                T_pMC   = E_pMC / M_pMC / C_pMC
+                outstr = f"{t:1.8e}, {z:1.8e}, {T_g:6.1f}, {T_pMC:6.1f}, {R_pMC*2:1.5e}, {M_pMC:1.5e}, {pST_pMC:4.3f}, {n_ine:6d}, {n_ell:6d}, {n_coll:6d}, {ni_FE_pMC:5d}, {ni_O_pMC:5d}, {('FE','FEO')[k]:3s}, {star:3s}, {T_ev0:6.1f}"
+                print(outstr)
+                MC_file.write(outstr+'\n')
     
     # Radiation losses/gain according to Landstroem et al. (2005) https://doi.org/10.1007/s00339-005-3284-3
     # But at least, they are integrated at the end of the large dt
