@@ -45,6 +45,11 @@ nucleation:
 evaporation:
   alpha: 1.0            # evaporation coefficient (Hertz-Knudsen, 1 = every surface molecule with enough energy leaves)
   d_min_kelvin: 1.0e-9  # m, Kelvin factor evaluated at max(d_p, d_min) (capillarity approx. invalid below ~1 nm)
+  kelvin_mode: cap      # 'cap' = classical Kelvin with d_min cap (previous behaviour), 'tolman' = Khrabry et al. 2025 (Fe only)
+  tolman_a: -0.0021     # N/m/K, sigma*delta_T/r_W = a*T + b (MD fit)
+  tolman_b: 5.46        # N/m
+  tolman_Tmin: 1600.0   # K, validity range of the fit; T is clamped to it
+  tolman_Tmax: 2400.0   # K
 
 # Collisions (elastic and inelastic)
 collisions:

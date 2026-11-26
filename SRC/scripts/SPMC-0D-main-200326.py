@@ -95,6 +95,31 @@ ev_spec  = [(sp_all['FE'],  sp_all['FE(L)'],   1.92,  -3.97e-4, 1811.0, 7000.0),
             (sp_all['FEO'], sp_all['FEO(L)'],  0.585,  0.0,     1650.0, 4600.0)]   # FeO(l) -> FeO(g)
 m_ev     = [gas.molecular_weights[gas.species_index(n)]*1e-3/N_A for n in ('FE', 'FEO')]  # molecule mass (kg)
 
+# Kelvin factor mode: 'cap' = classical Kelvin with d_min cap (previous behaviour, default)
+#                     'tolman' = Tolman-corrected surface tension for Fe clusters
+# Khrabry et al. (2025), Aerosol Sci. Technol. 59(6), 743-764, Eq. 7, 15-17:
+#   sigma_i = sigma / (1 + 2*(delta_T/r_W)*i^(-1/3)),   E_s(i) = sigma_i*4*pi*r_W^2*(i^(2/3) - 1)
+#   K = exp((E_s(i) - E_s(i-1)) / (k_B*T))
+#   delta_T/r_W = (a*T + b) / (-0.00152*T + 4.54)    (MD fit, valid ~1600-2400 K -> T clamped)
+# Only delta_T/r_W is taken from the paper; sigma(T) stays the experimental one (consistent with p_sat).
+ev_conf     = conf['evaporation']
+kelvin_mode = str(ev_conf.get('kelvin_mode', 'cap')).lower()
+tol_a       = float(ev_conf.get('tolman_a', -0.0021))     # N/m/K
+tol_b       = float(ev_conf.get('tolman_b', 5.46))        # N/m
+tol_Tmin    = float(ev_conf.get('tolman_Tmin', 1600.0))   # K
+tol_Tmax    = float(ev_conf.get('tolman_Tmax', 2400.0))   # K
+if kelvin_mode not in ('cap', 'tolman'):
+    sys.exit(f"evaporation.kelvin_mode must be 'cap' or 'tolman', got '{kelvin_mode}'")
+
+def kelvin_tolman(T, R, sig, m, rho):
+    ''' discrete Kelvin factor with Tolman correction (Fe only) '''
+    Tt  = min(max(T, tol_Tmin), tol_Tmax)
+    dr  = (tol_a*Tt + tol_b) / (-0.00152*Tt + 4.54)             # delta_T / r_W
+    r_W = (3.0*m / (4.0*PI*rho))**(1.0/3.0)                     # Wigner-Seitz radius (m)
+    i   = max((R / r_W)**3, 2.0)                                # equivalent number of atoms
+    Es  = lambda n: sig/(1.0 + 2.0*dr*n**(-1.0/3.0)) * 4.0*PI*r_W**2 * (n**(2.0/3.0) - 1.0)
+    return mt.exp((Es(i) - Es(i-1.0)) / (k_B*T))
+
 def evap_rates(T, R, pST):
     ''' gross evaporation rates (1/s) of Fe and FeO; condensation is handled by the collisions '''
     T = min(max(T, 1000.0), 5000.0)                    # validity range of the NASA fits
@@ -103,7 +128,11 @@ def evap_rates(T, R, pST):
     for a, (g, c, s0, ds, Tr, rho), m in zip((1.0-x, x), ev_spec, m_ev):
         dG   = (g.thermo.h(T)-T*g.thermo.s(T)) - (c.thermo.h(T)-T*c.thermo.s(T))   # J/kmol, free energy change of the phase transition
         psat = 101325.0 * mt.exp(-dG / (R_m*1e3*T))                                # saturation pressure (Pa)
-        K    = mt.exp(4.0*(s0+ds*(T-Tr))*(m/rho) / (max(2.0*R, d_min_K)*k_B*T))   # Kelvin factor
+        sig  = s0 + ds*(T-Tr)                                                      # surface tension of the flat surface (N/m)
+        if kelvin_mode == 'tolman' and g is ev_spec[0][0]:
+            K = kelvin_tolman(T, R, sig, m, rho)                                   # Fe: Tolman-corrected, discrete Kelvin factor
+        else:
+            K = mt.exp(4.0*sig*(m/rho) / (max(2.0*R, d_min_K)*k_B*T))              # classical Kelvin factor, capped at d_min (FeO always)
         r.append(a * alpha_ev * psat*K / mt.sqrt(2.0*PI*m*k_B*T) * 4.0*PI*R**2)   # Hertz-Knudsen * surface = evaporation rate (1/s)
     return r
 

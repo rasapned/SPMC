@@ -111,3 +111,10 @@ wapmypy.json
 # Swap files
 *.swp
 *.swo
+
+# Local backups
+*.bak
+
+# Raw MC output of comparison runs (large; regenerate with run_all.sh)
+RUNS_*/**/RESULTS/**/*-SPMC-*.csv
+RUNS_*/**/RESULTS/**/*-average.csv
